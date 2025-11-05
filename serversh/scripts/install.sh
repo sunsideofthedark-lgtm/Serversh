@@ -399,10 +399,12 @@ execute_installation() {
         log_info "Installing specified modules: ${MODULES_TO_INSTALL[*]}"
         engine_start "${MODULES_TO_INSTALL[@]}"
         install_result=$?
+        log_info "Engine start completed with exit code: $install_result"
     else
         log_info "Installing all enabled modules"
         engine_start
         install_result=$?
+        log_info "Engine start completed with exit code: $install_result"
     fi
 
     # Handle installation result
