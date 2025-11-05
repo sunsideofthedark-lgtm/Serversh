@@ -1,651 +1,992 @@
-# ServerSH: Modular Server Setup Framework
+# ServerSH - Modular Server Installation Framework
 
-## Overview
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Bash Version](https://img.shields.io/badge/bash-5.0+-blue.svg)](https://www.gnu.org/software/bash/)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Ubuntu%20%7C%20Debian%20%7C%20CentOS%20%7C%20RHEL%20%7C%20Fedora-lightgrey.svg)](https://github.com/sunsideofthedark-lgtm/Serversh)
 
-ServerSH is a comprehensive, modular server setup framework that transforms server provisioning from a monolithic script into a flexible, maintainable system. Built on the success of the original example.sh script, ServerSH provides enhanced Docker integration, robust dependency management, and extensible architecture for modern server deployments.
+**ServerSH** ist ein modulares, automatisierbares Framework für die Server-Installation und Konfiguration. Es vereinfacht komplexe Server-Setups durch eine intuitive Architektur, YAML-Konfiguration und umfassende Automatisierung.
 
-## Key Features
+## ✨ Hauptmerkmale
 
-### 🏗️ Modular Architecture
-- **Plugin-based system**: Install only what you need
-- **Dependency resolution**: Automatic handling of module dependencies
-- **Hot-swappable modules**: Add, remove, or update modules without reinstalling
-- **Version management**: Pin specific versions for reproducible deployments
+- 🚀 **Schnelle Installation**: Minuten statt Stunden für vollständige Server-Setups
+- 🔧 **Modulare Architektur**: Nur die Features installieren, die du benötigst
+- 🎯 **Automatisierung**: Vollständige Automatisierung via Umgebungsvariablen
+- 🔒 **Security-First**: SSH-Hardening, Firewall, Fail2ban Integration
+- 🐳 **Docker Support**: Optimierte Docker-Konfiguration mit Netzwerk-Setup
+- 📊 **Monitoring**: Prometheus + Node Exporter Integration
+- 🔄 **Backup & Recovery**: Vollständige Backup-Lösung mit Disaster Recovery
+- 🌐 **Multi-Server**: Cluster-Management und Load Balancing
+- 📱 **VPN Integration**: Tailscale mit SSH-Unterstützung
+- 🛠️ **Extensible**: Einfache Entwicklung eigener Module
 
-### 🐳 Enhanced Docker Integration
-- **Multi-architecture support**: ARM, x86_64, and more
-- **Advanced networking**: Custom MTU, IPv6 support, network isolation
-- **Container orchestration**: Docker Compose integration with templates
-- **Security hardening**: User namespaces, seccomp profiles, content trust
+## 🚀 Schnellstart
 
-### 🔒 Security First
-- **Zero-trust architecture**: Module signing and verification
-- **Sandboxed execution**: Isolated module environments
-- **Rollback capabilities**: Automatic rollback points for recovery
-- **Audit logging**: Comprehensive audit trails for compliance
-
-### ⚡ Performance Optimized
-- **Parallel execution**: Independent modules run concurrently
-- **Intelligent caching**: Package downloads and dependency resolution
-- **Resource monitoring**: Real-time resource usage tracking
-- **Scalable deployment**: Support for large-scale server fleets
-
-### 🛠️ Developer Friendly
-- **Rich CLI**: Intuitive command-line interface
-- **Configuration as code**: YAML/JSON configuration management
-- **Testing framework**: Built-in unit, integration, and E2E testing
-- **Extensible API**: Plugin system for custom integrations
-
-## Quick Start
-
-### Installation
+### Methode 1: Quick Setup (Empfohlen)
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/serversh.git
-cd serversh
+# Klone das Repository
+git clone https://github.com/sunsideofthedark-lgtm/Serversh.git
+cd Serversh
 
-# Run the installer
-sudo bash ./scripts/install.sh
+# Kopiere und konfiguriere die Umgebung
+cp .env.example .env
+nano .env  # Passe deine Konfiguration an
 
-# Verify installation
-server-setup --version
+# Führe die Installation aus
+./quick-setup.sh
 ```
 
-### Basic Usage
+### Methode 2: Environment-Based Installation
 
 ```bash
-# Interactive module selection
-sudo server-setup
+# Konfiguriere .env Datei
+cp .env.example .env
 
-# Install specific modules
-sudo server-setup install docker nginx monitoring
-
-# Use configuration file
-sudo server-setup install --config production.yaml
-
-# Check system status
-server-setup status
-
-# List available modules
-server-setup list-modules
+# Starte vollautomatische Installation
+./serversh/scripts/install-from-env.sh
 ```
 
-### Configuration Example
-
-```yaml
-# config.yaml
-modules:
-  enabled:
-    - system-detection
-    - security
-    - docker
-    - nginx
-    - monitoring
-
-docker:
-  version: "24.0.0"
-  network:
-    mtu: 1450
-    ipv6: true
-  storage:
-    driver: "overlay2"
-  logging:
-    driver: "json-file"
-    max_size: "10m"
-
-nginx:
-  version: "stable"
-  sites:
-    - name: "example.com"
-      type: "reverse-proxy"
-      upstream: "http://localhost:3000"
-      ssl: true
-      ssl_cert: "/etc/ssl/certs/example.com.crt"
-      ssl_key: "/etc/ssl/private/example.com.key"
-
-monitoring:
-  prometheus:
-    enabled: true
-    port: 9090
-  grafana:
-    enabled: true
-    port: 3000
-    dashboards:
-      - system-metrics
-      - docker-metrics
-```
-
-## Architecture
-
-### Directory Structure
-
-```
-serversh/
-├── bin/                     # Executable scripts
-├── lib/                     # Core framework libraries
-│   ├── core/               # Framework core
-│   ├── utils/              # Utility functions
-│   └── interfaces/         # Interface definitions
-├── modules/                # Module library
-│   ├── core/              # Core system modules
-│   ├── infrastructure/    # Infrastructure modules
-│   ├── applications/      # Application modules
-│   └── custom/            # User-defined modules
-├── config/                 # Configuration files and schemas
-├── plugins/               # Framework plugins
-├── tests/                 # Test suite
-├── docs/                  # Documentation
-└── scripts/               # Helper scripts
-```
-
-### Module System
-
-Each module implements a standardized interface:
+### Methode 3: Manuelle Installation
 
 ```bash
-# Required module metadata
-readonly MODULE_NAME="example-module"
-readonly MODULE_VERSION="1.0.0"
-readonly MODULE_DESCRIPTION="Example module description"
-readonly MODULE_DEPENDENCIES=("system-detection" "network")
-
-# Required interface functions
-module_pre_check()     # Pre-installation validation
-module_install()       # Installation logic
-module_configure()     # Configuration and setup
-module_post_check()    # Post-installation verification
-module_uninstall()     # Cleanup and removal
-module_status()        # Status reporting
+# Standard-Konfiguration verwenden
+sudo ./serversh/scripts/install.sh
 ```
 
-## Modules
+## 📋 Inhaltsverzeichnis
 
-### Core Modules
+- [Installation](#installation)
+- [Konfiguration](#konfiguration)
+- [Module](#module)
+- [Verwendung](#verwendung)
+- [Backup & Recovery](#backup--recovery)
+- [Multi-Server Management](#multi-server-management)
+- [Sicherheit](#sicherheit)
+- [Troubleshooting](#troubleshooting)
+- [Entwicklung](#entwicklung)
 
-#### System Detection
-- OS identification and validation
-- Hardware detection
-- Environment analysis
-- Compatibility checking
+## 🛠️ Installation
 
-#### Security
-- User management and access control
-- SSH hardening and key management
-- Authentication configuration
-- Security policy enforcement
+### Systemanforderungen
 
-#### Firewall
-- Multi-distribution firewall support
-- Port management and rules
-- Security policy templates
-- Network segmentation
+- **Betriebssysteme**: Ubuntu 18.04+, Debian 10+, CentOS 7+, RHEL 7+, Fedora 30+, Arch Linux, openSUSE Leap 15.4+
+- **Bash**: Version 5.0 oder höher
+- **Speicher**: Mindestens 2 GB RAM, 10 GB freier Speicherplatz
+- **Netzwerk**: Internetverbindung für Paketinstallation
 
-### Infrastructure Modules
+### Installationsschritte
 
-#### Docker
-- Container platform installation
-- Network configuration and optimization
-- Storage management
-- Security hardening
+1. **Repository klonen**
+   ```bash
+   git clone https://github.com/sunsideofthedark-lgtm/Serversh.git
+   cd Serversh
+   ```
 
-#### NGINX
-- Web server installation and configuration
-- Reverse proxy setup
-- SSL/TLS certificate management
-- Performance optimization
+2. **Konfiguration anpassen**
+   ```bash
+   # Environment-Konfiguration kopieren
+   cp .env.example .env
 
-#### Database
-- Multi-database support (MySQL, PostgreSQL, MongoDB)
-- Installation and configuration
-- Backup strategies
-- Performance tuning
+   # Konfiguration bearbeiten
+   nano .env
+   ```
 
-#### SSL Management
-- Let's Encrypt integration
-- Certificate management
-- Automatic renewal
-- Security configuration
+3. **Installation ausführen**
+   ```bash
+   # Interaktive Installation
+   ./quick-setup.sh
 
-### Application Modules
+   # Oder automatische Installation
+   sudo ./serversh/scripts/install-from-env.sh
+   ```
+
+4. **Installation überprüfen**
+   ```bash
+   # Status prüfen
+   sudo ./serversh/scripts/status.sh
+
+   # Logs überprüfen
+   sudo journalctl -u serversh -f
+   ```
+
+## ⚙️ Konfiguration
+
+### Environment Variables (.env)
+
+Die `.env` Datei enthält alle Konfigurationsoptionen für dein Server-Setup. Hier sind die wichtigsten Sektionen:
+
+#### System-Konfiguration
+```bash
+# System Updates
+SERVERSH_UPDATE_AUTO=true
+SERVERSH_UPDATE_SECURITY_ONLY=false
+
+# Hostname
+SERVERSH_HOSTNAME=myserver
+SERVERSH_FQDN=myserver.example.com
+```
+
+#### Benutzer-Konfiguration
+```bash
+# Hauptbenutzer
+SERVERSH_CREATE_USER=true
+SERVERSH_USERNAME=admin
+SERVERSH_USER_PASSWORD=SecurePassword123!
+SERVERSH_USER_SUDO=true
+```
+
+#### SSH-Konfiguration
+```bash
+# SSH Sicherheit
+SERVERSH_SSH_ENABLE=true
+SERVERSH_SSH_INTERACTIVE_PORT=true
+SERVERSH_SSH_PREFERRED_PORT=2222
+SERVERSH_SSH_PASSWORD_AUTHENTICATION=no
+SERVERSH_SSH_PERMIT_ROOT_LOGIN=no
+```
+
+#### Docker-Konfiguration
+```bash
+# Docker Installation
+SERVERSH_DOCKER_ENABLE=true
+SERVERSH_DOCKER_VERSION=latest
+SERVERSH_DOCKER_INSTALL_COMPOSE=true
+
+# Docker Netzwerk (MTU 1450 für Tailscale)
+SERVERSH_DOCKER_NETWORK_MTU=1450
+SERVERSH_DOCKER_NETWORK_NAME=newt_talk
+SERVERSH_DOCKER_IPV6=true
+```
 
 #### Monitoring
-- Prometheus integration
-- Grafana dashboards
-- Alert management
-- Performance metrics
-
-#### Logging
-- Log aggregation and analysis
-- Centralized logging
-- Log rotation and retention
-- Real-time monitoring
-
-#### CI/CD
-- GitLab CI/CD integration
-- Jenkins setup
-- GitHub Actions
-- Deployment pipelines
-
-## Development
-
-### Creating Custom Modules
-
-1. **Create module directory**:
-   ```bash
-   mkdir modules/custom/my-module
-   ```
-
-2. **Implement module interface**:
-   ```bash
-   # modules/custom/my-module/module.sh
-   readonly MODULE_NAME="my-module"
-   readonly MODULE_VERSION="1.0.0"
-   readonly MODULE_DESCRIPTION="My custom module"
-   readonly MODULE_DEPENDENCIES=("system-detection")
-
-   module_pre_check() {
-       # Validation logic
-       return 0
-   }
-
-   module_install() {
-       # Installation logic
-       return 0
-   }
-
-   module_configure() {
-       # Configuration logic
-       return 0
-   }
-
-   module_post_check() {
-       # Verification logic
-       return 0
-   }
-
-   module_uninstall() {
-       # Cleanup logic
-       return 0
-   }
-
-   module_status() {
-       echo "status: installed"
-   }
-   ```
-
-3. **Add configuration schema**:
-   ```yaml
-   # modules/custom/my-module/config.yaml
-   my-module:
-     version: "latest"
-     option1: "default_value"
-     option2: true
-   ```
-
-4. **Write tests**:
-   ```bash
-   # tests/modules/custom/my-module/test.sh
-   source "$(dirname "$0")/../../../../lib/framework/test-runner.sh"
-
-   run_tests() {
-       test_module_installation
-       test_module_configuration
-       test_module_status
-   }
-   ```
-
-### Testing
-
 ```bash
-# Run all tests
-./tests/framework/test-runner.sh all
-
-# Run specific test types
-./tests/framework/test-runner.sh unit
-./tests/framework/test-runner.sh integration
-./tests/framework/test-runner.sh e2e
-
-# Run specific module tests
-./tests/framework/test-runner.sh modules/docker
-
-# Generate test report
-./tests/framework/test-runner.sh --report
+# Prometheus
+SERVERSH_PROMETHEUS_ENABLE=true
+SERVERSH_PROMETHEUS_PORT=9090
+SERVERSH_NODE_EXPORTER_ENABLE=true
 ```
 
-### Plugin Development
-
-Create plugins to extend framework functionality:
-
+#### Backup-Konfiguration
 ```bash
-# plugins/my-plugin/plugin.sh
-readonly PLUGIN_NAME="my-plugin"
-readonly PLUGIN_VERSION="1.0.0"
-readonly PLUGIN_HOOKS=("pre-module-install" "post-module-install")
-
-plugin_pre_module_install() {
-    echo "Installing module: $1"
-}
-
-plugin_post_module_install() {
-    echo "Module $1 installed successfully"
-}
+# Backup & Recovery
+SERVERSH_BACKUP_ENABLE=true
+SERVERSH_BACKUP_BASE_DIR=/backup
+SERVERSH_BACKUP_SCHEDULE="0 2 * * *"
+SERVERSH_BACKUP_RETENTION_DAYS=30
+SERVERSH_BACKUP_ENCRYPTION=false
 ```
 
-## Migration from example.sh
-
-The ServerSH framework maintains compatibility with the original example.sh script while providing enhanced functionality:
-
-### Automatic Migration
-
+#### Tailscale VPN
 ```bash
-# Migrate existing configuration
-sudo server-setup migrate --from /path/to/example.sh
-
-# Convert old configuration to new format
-server-setup convert-config --input old-config.txt --output new-config.yaml
+# Tailscale Integration
+SERVERSH_INSTALL_TAILSCALE=true
+SERVERSH_TAILSCALE_SSH=true
+SERVERSH_TAILSCALE_MAGICDNS=true
 ```
 
-### Feature Mapping
+### YAML-Konfiguration
 
-| example.sh Feature | ServerSH Equivalent |
-|-------------------|---------------------|
-| System Update | `system-update` module |
-| SSH Hardening | `security` module |
-| Firewall Setup | `firewall` module |
-| Docker Installation | `docker` module |
-| User Management | `security` module |
-| Optional Software | Individual modules |
-
-## Configuration
-
-### Configuration Sources
-
-ServerSH uses a hierarchical configuration system:
-
-1. **System defaults** (`/etc/serversh/defaults.yaml`)
-2. **Environment overrides** (`/etc/serversh/environments/{env}.yaml`)
-3. **User configuration** (`~/.serversh/config.yaml`)
-4. **Project configuration** (`./config.yaml`)
-5. **Command-line arguments**
-
-### Environment Configuration
+Alternativ kannst du YAML-Konfigurationsdateien verwenden:
 
 ```yaml
-# environments/production.yaml
-modules:
-  enabled:
-    - security
-    - firewall
-    - docker
-    - nginx
-    - monitoring
-    - backup
+# serversh/configs/main.yaml
+system:
+  hostname: "myserver"
+  update: true
+  security_updates: true
 
 security:
   ssh:
+    enable: true
     port: 2222
     password_auth: false
-    root_login: false
+  firewall:
+    enable: true
+    allow_ssh: true
 
-firewall:
-  allowed_ports:
-    - "2222/tcp"  # SSH
-    - "80/tcp"    # HTTP
-    - "443/tcp"   # HTTPS
-
-monitoring:
+applications:
+  docker:
+    enable: true
+    compose: true
   prometheus:
-    retention: "30d"
-    storage: "1TB"
-  alerts:
-    email: "admin@example.com"
+    enable: true
+    port: 9090
 ```
 
-### Validation
+## 🧩 Module
 
+ServerSH besteht aus modularen Komponenten, die je nach Bedarf installiert werden können:
+
+### System Module
+
+#### System Update (`system/update`)
+- Automatische System-Updates
+- Security-Only Updates
+- Paket-Cleanup nach Updates
+
+```yaml
+system/update:
+  auto_update: true
+  security_only: false
+  cleanup: true
+```
+
+#### Hostname (`system/hostname`)
+- Hostname und FQDN Konfiguration
+- /etc/hosts Update
+- DNS-Validierung
+
+```yaml
+system/hostname:
+  hostname: "myserver"
+  fqdn: "myserver.example.com"
+  update_hosts: true
+  validate_dns: false
+```
+
+### Security Module
+
+#### User Management (`security/users`)
+- Benutzer-Erstellung mit SSH-Keys
+- Sudo-Konfiguration
+- Passwort-Richtlinien
+
+```yaml
+security/users:
+  create_user: true
+  username: "admin"
+  password: "SecurePassword123!"
+  ssh_key: true
+  sudo: true
+```
+
+#### SSH Configuration (`security/ssh`)
+- SSH-Hardening mit Port-Scanning
+- Interaktive Port-Auswahl
+- Security-Best-Practices
+
+```yaml
+security/ssh:
+  enable: true
+  interactive_port: true
+  preferred_port: 2222
+  security_settings:
+    permit_root_login: "no"
+    password_authentication: "no"
+    client_alive_interval: 300
+```
+
+#### Firewall (`security/firewall`)
+- UFW/Firewalld Auto-Detection
+- Port-Management
+- Logging-Konfiguration
+
+```yaml
+security/firewall:
+  firewall_type: "auto"
+  enable_firewall: true
+  default_policy: "deny"
+  allow_ssh: true
+  allowed_ports: "80/tcp,443/tcp"
+```
+
+### Application Modules
+
+#### Docker (`container/docker`)
+- Docker Engine Installation
+- Docker Compose
+- Netzwerk-Konfiguration mit IPv6
+- Benutzer-Rechte
+
+```yaml
+container/docker:
+  version: "latest"
+  install_compose: true
+  network_config:
+    mtu: 1450
+    ipv6: true
+    name: "newt_talk"
+    ipv6_subnet: "2001:db8:1::/64"
+```
+
+#### Prometheus (`monitoring/prometheus`)
+- Prometheus Installation
+- Node Exporter
+- Service-Konfiguration
+- Retention-Policies
+
+```yaml
+monitoring/prometheus:
+  prometheus_version: "latest"
+  install_node_exporter: true
+  prometheus_port: 9090
+  node_exporter_port: 9100
+  enable_service: true
+```
+
+#### Optional Software (`applications/optional_software`)
+- Tailscale VPN Integration
+- Development Tools
+- System Utilities
+- Shell Environment
+
+```yaml
+applications/optional_software:
+  install_tailscale: true
+  tailscale_ssh: true
+  tailscale_magicdns: true
+  install_utilities: true
+  utility_packages: "htop,vim,git,curl,wget"
+```
+
+### Management Modules
+
+#### Backup & Recovery (`backup/backup_recovery`)
+- Multiple Backup-Strategien
+- Verschlüsselung und Kompression
+- Automatische Scheduling
+- Disaster Recovery
+
+```yaml
+backup:
+  enable: true
+  base_directory: "/backup"
+  schedule: "0 2 * * *"
+  retention_days: 30
+  compression: "gzip"
+  encryption: false
+  verify: true
+```
+
+#### Multi-Server Management (`management/multi_server`)
+- Cluster-Konfiguration
+- Load Balancing
+- Service Discovery
+- HAProxy Integration
+
+```yaml
+management/multi_server:
+  cluster_mode: "single_node_cluster"
+  etcd_enable: true
+  load_balancer: "haproxy"
+  monitoring: true
+```
+
+## 🎯 Verwendung
+
+### Grundlegende Befehle
+
+#### Installation
 ```bash
-# Validate configuration
-server-setup config validate --config config.yaml
+# Interaktive Installation
+./quick-setup.sh
 
-# Check configuration syntax
-server-setup config check --schema schemas/config-schema.json
+# Automatische Installation
+sudo ./serversh/scripts/install-from-env.sh
 
-# Show effective configuration
-server-setup config show --module docker
+# Mit benutzerdefinierter Konfiguration
+sudo ./serversh/scripts/install.sh --config=my-config.yaml
 ```
 
-## CLI Reference
-
-### Basic Commands
-
+#### Modul-Management
 ```bash
-# Installation
-server-setup install [module1 module2 ...]
-server-setup install --config config.yaml
-server-setup install --environment production
+# Einzelnes Modul installieren
+sudo ./serversh/scripts/install.sh --module=security/ssh
 
-# Management
-server-setup status
-server-setup list-modules [--installed|--available]
-server-setup info [module-name]
+# Modul deinstallieren
+sudo ./serversh/scripts/install.sh --uninstall --module=container/docker
 
-# Configuration
-server-setup config get [key]
-server-setup config set [key] [value]
-server-setup config validate [--config file]
-
-# Updates
-server-setup update [module-name]
-server-setup update-modules
-
-# Maintenance
-server-setup rollback [rollback-id]
-server-setup cleanup
-server-setup repair
+# Modul-Status prüfen
+sudo ./serversh/scripts/install.sh --status --module=monitoring/prometheus
 ```
 
-### Advanced Commands
-
+#### Backup-Management
 ```bash
-# Development
-server-setup dev create-module [name]
-server-setup dev test [module-name]
-server-setup dev package [module-name]
+# Backup erstellen
+sudo ./serversh/scripts/backupctl.sh create full
 
-# Performance
-server-setup benchmark [module-name]
-server-setup monitor
+# Backup wiederherstellen
+sudo ./serversh/scripts/backupctl.sh restore /backup/full/2024-01-01_02-00-00 /restore
 
-# Security
-server-setup audit
-server-setup verify-modules
-server-setup security-scan
+# Backup-Liste anzeigen
+./serversh/scripts/backupctl.sh list
+
+# Backup-Status prüfen
+./serversh/scripts/backupctl.sh status
 ```
 
-## Security
-
-### Module Signing
-
-All modules are cryptographically signed to ensure integrity and authenticity:
-
+#### Multi-Server-Management
 ```bash
-# Verify module signatures
-server-setup verify-modules
+# Cluster initialisieren
+sudo ./serversh/scripts/clusterctl.sh init --mode=single_node
 
-# Import trusted keys
-server-setup import-key /path/to/public-key.asc
+# Node zum Cluster hinzufügen
+sudo ./serversh/scripts/clusterctl.sh join --token=TOKEN --master=master-ip
 
-# Sign custom modules
-server-setup sign-module modules/custom/my-module
+# Cluster-Status prüfen
+./serversh/scripts/clusterctl.sh status
 ```
 
-### Sandboxing
+### Konfigurations-Beispiele
 
-Modules execute in isolated environments with restricted access:
-
+#### Minimal-Setup (Development)
 ```bash
-# Enable sandboxing
-server-setup config set security.sandbox_enabled true
-
-# Configure sandbox limits
-server-setup config set security.sandbox.cpu_limit "50%"
-server-setup config set security.sandbox.memory_limit "1GB"
+# .env für minimales Setup
+SERVERSH_HOSTNAME=dev-server
+SERVERSH_USERNAME=dev
+SERVERSH_USER_PASSWORD=dev123
+SERVERSH_DOCKER_ENABLE=true
+SERVERSH_PROMETHEUS_ENABLE=false
+SERVERSH_BACKUP_ENABLE=false
 ```
 
-### Audit Logging
-
-Comprehensive audit trails for security and compliance:
-
+#### Standard-Setup (Production)
 ```bash
-# View audit log
-server-setup audit-log --last 24h
-
-# Generate compliance report
-server-setup compliance-report --format pdf
+# .env für Standard-Setup
+SERVERSH_HOSTNAME=prod-server
+SERVERSH_USERNAME=admin
+SERVERSH_USER_PASSWORD=SecurePassword123!
+SERVERSH_SSH_ENABLE=true
+SERVERSH_SSH_INTERACTIVE_PORT=true
+SERVERSH_FIREWALL_ENABLE=true
+SERVERSH_DOCKER_ENABLE=true
+SERVERSH_PROMETHEUS_ENABLE=true
+SERVERSH_BACKUP_ENABLE=true
+SERVERSH_INSTALL_TAILSCALE=true
 ```
 
-## Performance
-
-### Optimization Features
-
-- **Parallel Execution**: Independent modules install concurrently
-- **Smart Caching**: Package downloads and dependency resolution cached
-- **Resource Monitoring**: Real-time resource usage tracking
-- **Incremental Updates**: Only update changed components
-
-### Benchmarks
-
-| Operation | Time (avg) | Improvement |
-|-----------|------------|-------------|
-| Full Setup | 3.5 min | 40% faster |
-| Docker Install | 45 sec | 60% faster |
-| Module Update | 12 sec | 75% faster |
-| Configuration Load | 2 sec | 85% faster |
-
-## Monitoring and Observability
-
-### Built-in Monitoring
-
+#### Full-Cluster Setup
 ```bash
-# View system metrics
-server-setup metrics
-
-# Check module health
-server-setup health-check
-
-# Performance profiling
-server-setup profile --module docker
+# .env für Cluster-Setup
+SERVERSH_HOSTNAME=cluster-node-1
+SERVERSH_MULTI_SERVER_MODE=cluster
+SERVERSH_ETCD_ENABLE=true
+SERVERSH_HAPROXY_ENABLE=true
+SERVERSH_PROMETHEUS_ENABLE=true
+SERVERSH_BACKUP_ENABLE=true
+SERVERSH_BACKUP_REMOTE_ENABLE=true
 ```
 
-### Integration Points
+## 💾 Backup & Recovery
 
-- **Prometheus metrics**: `http://localhost:9323/metrics`
-- **Grafana dashboards**: Pre-built dashboards for system monitoring
-- **Loki logging**: Structured logs for analysis
-- **AlertManager**: Configurable alerts and notifications
+### Backup-Strategien
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Module Installation Fails**
-   ```bash
-   # Check module status
-   server-setup status --module problematic-module
-
-   # View detailed logs
-   server-setup logs --module problematic-module
-
-   # Run diagnostics
-   server-setup diagnose --module problematic-module
-   ```
-
-2. **Dependency Conflicts**
-   ```bash
-   # Check dependency graph
-   server-setup deps --show-graph
-
-   # Resolve conflicts
-   server-setup deps --resolve-conflicts
-   ```
-
-3. **Performance Issues**
-   ```bash
-   # Monitor resource usage
-   server-setup monitor --resource-usage
-
-   # Identify bottlenecks
-   server-setup benchmark --detailed
-   ```
-
-### Debug Mode
-
+#### Full Backup
 ```bash
-# Enable debug logging
-DEBUG=1 server-setup install docker
+# Vollständiges Backup erstellen
+sudo ./serversh/scripts/backupctl.sh create full
 
-# Verbose output
-server-setup install docker --verbose
-
-# Dry run (no changes)
-server-setup install docker --dry-run
+# Mit benutzerdefinierten Quellen
+sudo ./serversh/scripts/backupctl.sh create full "/etc,/home,/var/www"
 ```
 
-## Contributing
+#### Incremental Backup
+```bash
+# Inkrementelles Backup (seit letztem Full Backup)
+sudo ./serversh/scripts/backupctl.sh create incremental
 
-We welcome contributions to ServerSH! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+# Seit bestimmtem Zeitpunkt
+sudo ./serversh/scripts/backupctl.sh create incremental --since="2024-01-01"
+```
 
-### Development Workflow
+#### Differential Backup
+```bash
+# Differentielles Backup (seit letztem Full Backup)
+sudo ./serversh/scripts/backupctl.sh create differential
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Write tests for your changes
-4. Ensure all tests pass
-5. Submit a pull request
+#### Snapshot Backup
+```bash
+# Dateisystem-Snapshot
+sudo ./serversh/scripts/backupctl.sh create snapshot
+```
 
-### Code Style
+### Backup-Wiederherstellung
 
-- Follow the [Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
-- Use 4-space indentation
-- Comment complex logic
-- Write comprehensive tests
+#### Komplette Wiederherstellung
+```bash
+# Aus Backup wiederherstellen
+sudo ./serversh/scripts/backupctl.sh restore /backup/full/2024-01-01_02-00-00 /
 
-## License
+# In bestimmtes Verzeichnis
+sudo ./serversh/scripts/backupctl.sh restore /backup/full/2024-01-01_02-00-00 /restore
+```
 
-ServerSH is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+#### Selektive Wiederherstellung
+```bash
+# Nur bestimmte Dateien wiederherstellen
+sudo ./serversh/scripts/backupctl.sh restore /backup/full/2024-01-01_02-00-00 /restore --include="*.conf"
 
-## Support
+# Bestimmte Verzeichnisse ausschließen
+sudo ./serversh/scripts/backupctl.sh restore /backup/full/2024-01-01_02-00-00 /restore --exclude="/var/cache"
+```
 
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/your-org/serversh/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/serversh/discussions)
-- **Community**: [Discord Server](https://discord.gg/serversh)
+### Disaster Recovery
 
-## Roadmap
+#### Disaster Recovery Package erstellen
+```bash
+# Komplettes DR-Paket erstellen
+sudo ./serversh/scripts/backupctl.sh disaster-recovery
 
-### Version 2.1 (Q1 2024)
-- [ ] GUI interface for module management
-- [ ] Cloud provider integrations (AWS, GCP, Azure)
-- [ ] Advanced backup and disaster recovery
-- [ ] Multi-node cluster management
+# Automatisches DR-Paket (monatlich)
+sudo ./serversh/scripts/backupctl.sh schedule --type=disaster-recovery
+```
 
-### Version 2.2 (Q2 2024)
-- [ ] AI-powered configuration optimization
-- [ ] Advanced security scanning
-- [ ] Performance auto-tuning
-- [ ] Mobile management app
+#### System-Wiederherstellung
+```bash
+# Von Live-Medium booten und DR-Paket entpacken
+tar -xzf disaster_recovery_2024-01-01_02-00-00.tar.gz
+cd disaster_recovery_*
 
-### Version 3.0 (Q3 2024)
-- [ ] Microservices architecture
-- [ ] Kubernetes integration
-- [ ] Edge computing support
-- [ ] Enterprise features
+# Wiederherstellung starten
+sudo ./recover.sh
+```
 
-## Acknowledgments
+### Backup-Management
 
-ServerSH is built upon the foundation of the original example.sh script and incorporates feedback from hundreds of users across various industries. We thank the community for their contributions and support.
+#### Backup-Verifizierung
+```bash
+# Backup-Integrität prüfen
+sudo ./serversh/scripts/backupctl.sh verify /backup/full/2024-01-01_02-00-00
+
+# Alle Backups verifizieren
+sudo ./serversh/scripts/backupctl.sh verify --all
+```
+
+#### Backup-Aufräumung
+```bash
+# Alte Backups löschen (gemäß Retention Policy)
+sudo ./serversh/scripts/backupctl.sh cleanup
+
+# Bestimmten Typ aufräumen
+sudo ./serversh/scripts/backupctl.sh cleanup --type=incremental
+
+# Manuelle Aufräumung mit Alters-Limit
+sudo ./serversh/scripts/backupctl.sh cleanup --older-than=30d
+```
+
+## 🌐 Multi-Server Management
+
+### Cluster-Konfiguration
+
+#### Single Node Cluster
+```bash
+# Single Node Cluster initialisieren
+sudo ./serversh/scripts/clusterctl.sh init --mode=single_node
+
+# Status prüfen
+./serversh/scripts/clusterctl.sh status
+```
+
+#### Multi-Node Cluster
+```bash
+# Master Node initialisieren
+sudo ./serversh/scripts/clusterctl.sh init --mode=multi_master
+
+# Worker Node hinzufügen
+TOKEN=$(sudo ./serversh/scripts/clusterctl.sh token create --role=worker)
+sudo ./serversh/scripts/clusterctl.sh join --token=$TOKEN --master=master-ip
+
+# Additional Master hinzufügen
+TOKEN=$(sudo ./serversh/scripts/clusterctl.sh token create --role=master)
+sudo ./serversh/scripts/clusterctl.sh join --token=$TOKEN --master=master-ip
+```
+
+### Load Balancing
+
+#### HAProxy Konfiguration
+```bash
+# HAProxy für Load Balancing installieren
+sudo ./serversh/scripts/install.sh --module=management/multi_server
+
+# Backend-Services konfigurieren
+./serversh/scripts/clusterctl.sh backend add --name=web --port=80 --nodes=node1,node2,node3
+
+# Load Balancer Status prüfen
+./serversh/scripts/clusterctl.sh lb status
+```
+
+#### Service Discovery
+```bash
+# Service im Cluster registrieren
+./serversh/scripts/clusterctl.sh service register --name=web-app --port=8080 --health=/health
+
+# Services auflisten
+./serversh/scripts/clusterctl.sh service list
+
+# Service-Status prüfen
+./serversh/scripts/clusterctl.sh service health --name=web-app
+```
+
+### Node Management
+
+#### Node-Operationen
+```bash
+# Node entfernen (graceful)
+./serversh/scripts/clusterctl.sh node remove --name=node3 --graceful
+
+# Node pausieren (Wartung)
+./serversh/scripts/clusterctl.sh node pause --name=node2
+
+# Node reaktivieren
+./serversh/scripts/clusterctl.sh node resume --name=node2
+
+# Node-Status
+./serversh/scripts/clusterctl.sh node status --name=node1
+```
+
+## 🔒 Sicherheit
+
+### SSH-Hardening
+
+#### Port-Konfiguration
+```bash
+# Interaktive Port-Auswahl
+sudo ./serversh/scripts/install.sh --module=security/ssh_interactive
+
+# Manuelles Port-Scanning
+./serversh/scripts/port-scanner.sh --ranges=2000-2999,4000-4999
+```
+
+#### SSH-Konfiguration
+```yaml
+security/ssh:
+  port: 2222
+  permit_root_login: "no"
+  password_authentication: "no"
+  permit_empty_passwords: "no"
+  client_alive_interval: 300
+  client_alive_count_max: 2
+  max_auth_tries: 3
+  max_sessions: 10
+```
+
+### Firewall-Konfiguration
+
+#### UFW (Ubuntu/Debian)
+```bash
+# UFW konfigurieren
+sudo ufw enable
+sudo ufw default deny incoming
+sudo ufw allow 2222/tcp  # SSH Port
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+```
+
+#### Firewalld (CentOS/RHEL)
+```bash
+# Firewalld konfigurieren
+sudo firewall-cmd --set-default-zone=drop
+sudo firewall-cmd --permanent --add-port=2222/tcp
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --reload
+```
+
+### Fail2ban Integration
+
+#### Konfiguration
+```yaml
+security:
+  fail2ban:
+    enable: true
+    maxretry: 3
+    findtime: 600
+    bantime: 3600
+    destemail: "admin@example.com"
+    sendmail: true
+```
+
+#### Management
+```bash
+# Fail2ban Status prüfen
+sudo fail2ban-client status
+
+# IP unbanen
+sudo fail2ban-client set sshd unbanip 192.168.1.100
+
+# Logs anzeigen
+sudo tail -f /var/log/fail2ban.log
+```
+
+### Tailscale VPN
+
+#### Installation und Konfiguration
+```bash
+# Tailscale installieren
+sudo ./serversh/scripts/install.sh --module=applications/optional_software
+
+# Mit SSH-Unterstützung verbinden
+sudo tailscale up --ssh --authkey=tskey-xxx
+
+# Status prüfen
+tailscale status
+```
+
+#### MagicDNS und SSH
+```bash
+# MagicDNS aktivieren
+sudo tailscale set --magic-dns
+
+# SSH über Tailscale
+ssh admin@myserver.tailnet-xxxx.ts.net
+
+# SSH-Keys anzeigen
+tailscale status --self
+```
+
+## 🐛 Troubleshooting
+
+### Häufige Probleme
+
+#### SSH-Verbindungsprobleme
+```bash
+# SSH-Service Status prüfen
+sudo systemctl status ssh
+
+# SSH-Konfiguration validieren
+sudo sshd -t
+
+# Logs überprüfen
+sudo journalctl -u ssh -f
+
+# Port-Verfügbarkeit prüfen
+sudo netstat -tlnp | grep :22
+```
+
+#### Docker-Probleme
+```bash
+# Docker-Service Status
+sudo systemctl status docker
+
+# Docker-Logs
+sudo journalctl -u docker -f
+
+# Netzwerk-Probleme
+docker network ls
+docker network inspect newt_talk
+
+# Berechtigungen prüfen
+groups $USER
+sudo usermod -aG docker $USER
+```
+
+#### Backup-Probleme
+```bash
+# Backup-Status prüfen
+./serversh/scripts/backupctl.sh status
+
+# Konfiguration validieren
+./serversh/scripts/backupctl.sh test
+
+# Logs überprüfen
+sudo journalctl -u serversh-backup -f
+
+# Speicherplatz prüfen
+df -h /backup
+```
+
+#### Cluster-Probleme
+```bash
+# Cluster-Status prüfen
+./serversh/scripts/clusterctl.sh status
+
+# Node-Konnektivität
+./serversh/scripts/clusterctl.sh node test --name=node1
+
+# Service-Logs
+sudo journalctl -u etcd -f
+sudo journalctl -u haproxy -f
+```
+
+### Debug-Modus
+
+#### Installation mit Debug
+```bash
+# Debug-Modus aktivieren
+export SERVERSH_DEBUG=true
+export SERVERSH_VERBOSE_OUTPUT=true
+
+# Installation mit Debug-Output
+sudo ./serversh/scripts/install.sh --verbose --debug
+```
+
+#### Module-Debug
+```bash
+# Modul einzeln debuggen
+sudo ./serversh/modules/security/ssh.sh validate
+sudo ./serversh/modules/container/docker.sh install
+
+# Logs für spezifisches Modul
+sudo journalctl -u serversh | grep "ssh_module"
+```
+
+### Logging
+
+#### System-Logs
+```bash
+# ServerSH Service Logs
+sudo journalctl -u serversh -f
+
+# Alle relevanten Logs
+sudo journalctl -u serversh -u docker -u ssh -u prometheus -f
+
+# Errors only
+sudo journalctl -p err -u serversh
+```
+
+#### Backup-Logs
+```bash
+# Backup-Logs
+sudo tail -f /var/log/serversh/backup.log
+
+# Disaster Recovery Logs
+sudo tail -f /var/log/serversh/disaster-recovery.log
+```
+
+#### Cluster-Logs
+```bash
+# etcd Logs
+sudo journalctl -u etcd -f
+
+# HAProxy Logs
+sudo tail -f /var/log/haproxy.log
+
+# Cluster Management Logs
+sudo tail -f /var/log/serversh/cluster.log
+```
+
+## 🧪 Entwicklung
+
+### Module entwickeln
+
+#### Modul-Struktur
+```
+serversh/modules/category/module_name/
+├── module_name.sh          # Haupt-Script
+├── config.yaml             # Standard-Konfiguration
+├── tests/                  # Tests
+│   ├── test_module.sh
+│   └── test_integration.sh
+└── docs/                   # Dokumentation
+    └── module.md
+```
+
+#### Modul-Template
+```bash
+#!/bin/bash
+
+# =============================================================================
+# ServerSH Module Template
+# =============================================================================
+
+set -euo pipefail
+
+# Source required utilities
+source "${SERVERSH_ROOT}/core/utils.sh"
+source "${SERVERSH_ROOT}/core/logger.sh"
+source "${SERVERSH_ROOT}/core/state.sh"
+
+# Module metadata
+MODULE_NAME="category/module_name"
+MODULE_VERSION="1.0.0"
+MODULE_DESCRIPTION="Module description"
+MODULE_DEPENDENCIES=()
+
+# Module functions
+validate() {
+    log_info "Validating ${MODULE_NAME} configuration"
+    # Add validation logic here
+}
+
+install() {
+    log_info "Installing ${MODULE_NAME}"
+    # Add installation logic here
+    save_state "${MODULE_NAME}" "installed"
+}
+
+uninstall() {
+    log_info "Uninstalling ${MODULE_NAME}"
+    # Add uninstallation logic here
+    save_state "${MODULE_NAME}" "uninstalled"
+}
+
+# Execute module operations
+case "${1:-}" in
+    "validate")
+        validate
+        ;;
+    "install")
+        install
+        ;;
+    "uninstall")
+        uninstall
+        ;;
+    *)
+        echo "Usage: $0 {validate|install|uninstall}"
+        exit 1
+        ;;
+esac
+```
+
+### Testing
+
+#### Unit-Tests
+```bash
+# Tests ausführen
+./tests/test_core.sh
+./tests/test_modules.sh
+
+# Coverage
+./tests/run_coverage.sh
+```
+
+#### Integration-Tests
+```bash
+# Full Integration Test
+./tests/integration/test_full_installation.sh
+
+# Module-specific Tests
+./tests/integration/test_docker_module.sh
+./tests/integration/test_backup_module.sh
+```
+
+### Contributing
+
+1. **Fork** das Repository
+2. **Feature Branch** erstellen: `git checkout -b feature/amazing-feature`
+3. **Änderungen** committen: `git commit -m 'Add amazing feature'`
+4. **Push** zum Branch: `git push origin feature/amazing-feature`
+5. **Pull Request** erstellen
+
+### Code Standards
+
+- **Shell**: Bash 5.0+ compatible
+- **Style**: Follow Google Shell Style Guide
+- **Documentation**: Markdown with proper headers
+- **Testing**: Unit tests for all functions
+- **Security**: No hardcoded secrets, proper input validation
+
+## 📄 Lizenz
+
+Dieses Projekt ist unter der MIT Lizenz lizenziert - siehe [LICENSE](LICENSE) Datei für Details.
+
+## 🤝 Contributing
+
+Contributions sind willkommen! Bitte lies [CONTRIBUTING.md](CONTRIBUTING.md) für Details über unseren Code of Conduct und den Contributing-Prozess.
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/sunsideofthedark-lgtm/Serversh/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/sunsideofthedark-lgtm/Serversh/discussions)
+- **Documentation**: [Wiki](https://github.com/sunsideofthedark-lgtm/Serversh/wiki)
+
+## 🙏 Danksagungen
+
+- Allen Contributoren für ihre wertvollen Beiträge
+- Der Open-Source Community für Inspiration und Tools
+- Besonderen Dank an alle Tester und Feedback-Geber
 
 ---
 
-**ServerSH** - Making server setup simple, secure, and scalable. 🚀
+**ServerSH** - Making Server Management Simple, Secure, and Automated.
