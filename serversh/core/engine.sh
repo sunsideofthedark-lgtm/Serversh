@@ -532,7 +532,14 @@ engine_init() {
 
     # Auto-register modules if modules directory exists
     if [ -d "$SERVERSH_MODULES_DIR" ]; then
-        engine_register_modules_from_dir "$SERVERSH_MODULES_DIR"
+        log_info "Found modules directory, registering modules..."
+        if ! engine_register_modules_from_dir "$SERVERSH_MODULES_DIR"; then
+            log_error "Failed to register modules from: $SERVERSH_MODULES_DIR"
+            return $EXIT_MODULE_ERROR
+        fi
+        log_info "Module registration completed"
+    else
+        log_warn "Modules directory not found: $SERVERSH_MODULES_DIR"
     fi
 
     ENGINE_INITIALIZED=true
