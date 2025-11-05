@@ -481,14 +481,19 @@ engine_execute_parallel() {
 # Create execution checkpoint
 engine_create_checkpoint() {
     local description="$1"
+    echo "DEBUG: engine_create_checkpoint called with: $description" >&2
 
     if [ "$STATE_LOADED" != true ]; then
+        echo "DEBUG: State system not initialized (STATE_LOADED=$STATE_LOADED)" >&2
         log_error "State system not initialized"
         return $EXIT_STATE_ERROR
     fi
 
+    echo "DEBUG: About to call state_create_checkpoint" >&2
     state_create_checkpoint "$description" "execution"
-    return $EXIT_SUCCESS
+    local result=$?
+    echo "DEBUG: state_create_checkpoint returned: $result" >&2
+    return $result
 }
 
 # Rollback to checkpoint
