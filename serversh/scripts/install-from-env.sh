@@ -252,13 +252,31 @@ monitoring/prometheus:
 EOF
     fi
 
+    # Optionale Software Konfiguration
+    cat > "$config_dir/optional_software.yaml" << EOF
+applications/optional_software:
+  install_tailscale: ${SERVERSH_INSTALL_TAILSCALE:-true}
+  tailscale_login_method: "${SERVERSH_TAILSCALE_LOGIN_METHOD:-interactive}"
+  tailscale_auth_key: "${SERVERSH_TAILSCALE_AUTH_KEY:-}"
+  tailscale_args: "${SERVERSH_TAILSCALE_ARGS:-}"
+  install_dev_tools: ${SERVERSH_INSTALL_DEV_TOOLS:-false}
+  dev_packages: "${SERVERSH_DEV_PACKAGES:-build-essential,python3,python3-pip,nodejs,npm}"
+  install_utilities: ${SERVERSH_INSTALL_UTILITIES:-true}
+  utility_packages: "${SERVERSH_UTILITY_PACKAGES:-htop,vim,git,curl,wget,unzip,tree,ncdu,rsync,netcat-openbsd,zip,jq}"
+  install_docker_extras: ${SERVERSH_INSTALL_DOCKER_EXTRAS:-false}
+  docker_extras: "${SERVERSH_DOCKER_EXTRAS:-docker-compose,ctop}"
+  install_monitoring_tools: ${SERVERSH_INSTALL_MONITORING_TOOLS:-false}
+  monitoring_packages: "${SERVERSH_MONITORING_PACKAGES:-iotop,nethogs,sysstat,lm-sensors,atop}"
+  setup_aliases: ${SERVERSH_SETUP_ALIASES:-true}
+EOF
+
     log_success "Modul-Konfigurationen erstellt in: $config_dir"
 }
 
 run_installation() {
     log_info "Starte Installation..."
 
-    local modules="${SERVERSH_MODULE_ORDER:-system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus}"
+    local modules="${SERVERSH_MODULE_ORDER:-system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus,applications/optional_software}"
     local config_dir="${PROJECT_DIR}/configs/generated"
 
     # Erstelle temporäre Config-Datei für den Installer

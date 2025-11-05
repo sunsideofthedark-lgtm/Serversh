@@ -169,6 +169,11 @@ SERVERSH_NODE_EXPORTER_ENABLE=true
 # Zusätzliche Pakete
 SERVERSH_ADDITIONAL_PACKAGES="htop,vim,git,curl,wget,unzip,tree,ncdu,nginx,certbot,python3-certbot-nginx"
 
+# Tailscale Konfiguration
+SERVERSH_INSTALL_TAILSCALE=true
+SERVERSH_TAILSCALE_LOGIN_METHOD=interactive
+SERVERSH_TAILSCALE_ARGS="--accept-dns=false"
+
 # Sicherheits-Konfiguration
 SERVERSH_INSTALL_FAIL2BAN=true
 SERVERSH_AUTO_SECURITY_UPDATES=true
@@ -178,7 +183,7 @@ SERVERSH_AUTO_UPDATE_MAIL=$admin_email
 SERVERSH_LOG_LEVEL=INFO
 SERVERSH_AUTO_BACKUP=true
 SERVERSH_ROLLBACK_ON_ERROR=true
-SERVERSH_MODULE_ORDER="system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus"
+SERVERSH_MODULE_ORDER="system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus,applications/optional_software"
 EOF
 
     echo ""
@@ -334,7 +339,7 @@ SERVERSH_ADDITIONAL_PACKAGES="htop,vim,git,curl,wget"
 # Installations-Optionen
 SERVERSH_LOG_LEVEL=INFO
 SERVERSH_AUTO_BACKUP=true
-SERVERSH_MODULE_ORDER="system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus"
+SERVERSH_MODULE_ORDER="system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus,applications/optional_software"
 EOF
 
     echo ""
@@ -515,6 +520,11 @@ SERVERSH_PROMETHEUS_PORT=9090
 SERVERSH_PROMETHEUS_RETENTION=30d
 SERVERSH_NODE_EXPORTER_ENABLE=true
 
+# Tailscale Konfiguration
+SERVERSH_INSTALL_TAILSCALE=true
+SERVERSH_TAILSCALE_LOGIN_METHOD=interactive
+SERVERSH_TAILSCALE_ARGS="--accept-dns=false --accept-routes=true"
+
 # Sicherheits-Konfiguration
 SERVERSH_INSTALL_FAIL2BAN=true
 SERVERSH_FAIL2BAN_MAXRETRY=2
@@ -536,7 +546,7 @@ SERVERSH_ADDITIONAL_PACKAGES="htop,vim,git,curl,wget,unzip,tree,ncdu,rsync,logro
 SERVERSH_LOG_LEVEL=INFO
 SERVERSH_AUTO_BACKUP=true
 SERVERSH_ROLLBACK_ON_ERROR=true
-SERVERSH_MODULE_ORDER="system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus"
+SERVERSH_MODULE_ORDER="system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus,applications/optional_software"
 EOF
 
     echo ""

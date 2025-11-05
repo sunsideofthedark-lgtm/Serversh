@@ -1,0 +1,30 @@
+# =============================================================================
+# ServerSH Optional Software Configuration
+# =============================================================================
+
+# Optional Software Installation
+applications/optional_software:
+  # Tailscale VPN Configuration
+  install_tailscale: true
+  tailscale_login_method: "interactive"  # interactive, auth_key, no_login
+  tailscale_auth_key: ""  # Required if login_method is "auth_key"
+  tailscale_args: "--accept-dns=false --accept-routes=true"  # Additional Tailscale arguments
+
+  # Development Tools Installation
+  install_dev_tools: false
+  dev_packages: "build-essential,python3,python3-pip,nodejs,npm,yarn"
+
+  # System Utilities Installation
+  install_utilities: true
+  utility_packages: "htop,vim,git,curl,wget,unzip,tree,ncdu,rsync,netcat-openbsd,zip,jq"
+
+  # Docker Extras Installation
+  install_docker_extras: false
+  docker_extras: "docker-compose,ctop"
+
+  # Monitoring Tools Installation
+  install_monitoring_tools: false
+  monitoring_packages: "iotop,nethogs,sysstat,lm-sensors,atop"
+
+  # Shell Environment Setup
+  setup_aliases: true
