@@ -411,6 +411,7 @@ execute_installation() {
         exit 0
     else
         log_error "ServerSH installation failed with exit code: $install_result"
+        log_error "Exit code meanings: 1=General Error, 2=Invalid Args, 3=Missing Deps, 4=Permission Denied, 5=Config Error, 6=Module Error, 7=State Error, 8=Lock Error"
         log_info "You can resume with: $0 --resume"
         log_info "Or rollback with: $0 --rollback-to <checkpoint_id>"
         exit $install_result

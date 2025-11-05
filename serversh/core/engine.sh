@@ -565,12 +565,14 @@ engine_start() {
     engine_create_checkpoint "Engine start"
 
     # Validate configuration
+    log_debug "Validating configuration..."
     if ! config_validate_values; then
         log_error "Configuration validation failed"
         state_set "status" "failed"
         ENGINE_RUNNING=false
         return $EXIT_CONFIG_ERROR
     fi
+    log_debug "Configuration validation passed"
 
     # Resolve dependencies
     if [ ${#module_list[@]} -gt 0 ]; then
@@ -587,12 +589,14 @@ engine_start() {
     fi
 
     # Resolve execution order
+    log_debug "Resolving dependencies for modules: ${module_list[*]}"
     if ! engine_resolve_dependencies "${module_list[@]}"; then
         log_error "Dependency resolution failed"
         state_set "status" "failed"
         ENGINE_RUNNING=false
         return $EXIT_MODULE_ERROR
     fi
+    log_debug "Dependency resolution passed"
 
     # Execute modules
     local execution_result=$EXIT_SUCCESS
