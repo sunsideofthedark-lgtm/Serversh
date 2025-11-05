@@ -568,6 +568,7 @@ engine_init() {
 
 # Start the engine with specified modules
 engine_start() {
+    echo "DEBUG: engine_start function called with args: $*" >&2
     local module_list=("$@")
 
     if [ "$ENGINE_INITIALIZED" != true ]; then
