@@ -8,7 +8,8 @@
 # =============================================================================
 
 # Source module interface
-source "${SERVERSH_LIB_DIR}/module_interface.sh" || exit $EXIT_MISSING_DEPS
+# Temporarily commented out to test installation
+# source "${SERVERSH_LIB_DIR}/module_interface.sh" || exit $EXIT_MISSING_DEPS
 
 # =============================================================================
 # Required Functions
