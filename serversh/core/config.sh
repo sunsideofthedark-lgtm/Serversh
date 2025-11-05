@@ -591,6 +591,10 @@ config_validate_values() {
         "debug"|"info"|"warn"|"error"|"fatal")
             log_debug "Log level valid: $log_level"
             ;;
+        # Accept numeric log levels as well
+        "0"|"1"|"2"|"3"|"4")
+            log_debug "Log level valid (numeric): $log_level"
+            ;;
         *)
             log_error "Invalid log level: $log_level"
             ((errors++))
