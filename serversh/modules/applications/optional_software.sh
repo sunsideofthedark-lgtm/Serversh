@@ -650,6 +650,10 @@ configure_tailscale() {
 
     module_log "INFO" "Configuring Tailscale with login method: $login_method"
 
+    # Get Tailscale SSH configuration
+    local enable_tailscale_ssh
+    enable_tailscale_ssh=$(module_config_get "enable_tailscale_ssh" "false")
+
     # Wait for Tailscale daemon to be ready
     local max_wait=30
     local wait_count=0
@@ -734,6 +738,23 @@ configure_tailscale() {
 
     # Wait a moment for connection to establish
     sleep 3
+
+    # Ask about Tailscale SSH web access if not configured
+    if [[ "$enable_tailscale_ssh" != "true" ]] && [[ -t 0 ]]; then
+        echo -e "${YELLOW}Möchten Sie Tailscale SSH-Zugriff über die Admin-Webseite aktivieren?${NC}"
+        echo "Damit können Sie per SSH von der Tailscale Admin-Konsole auf den Server zugreifen."
+        echo ""
+        read -p "Tailscale SSH Web-Zugriff aktivieren? (j/N): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Jj]$ ]]; then
+            module_log "INFO" "Tailscale SSH Web-Zugriff wird aktiviert"
+            configure_tailscale_ssh_access
+        else
+            module_log "INFO" "Tailscale SSH Web-Zugriff abgelehnt"
+        fi
+    elif [[ "$enable_tailscale_ssh" == "true" ]]; then
+        configure_tailscale_ssh_access
+    fi
 
     # Verify Tailscale status
     if tailscale status >/dev/null 2>&1; then
@@ -916,6 +937,124 @@ EOF
         fi
     else
         module_log "INFO" "SSH authentication script created for manual execution"
+    fi
+
+    return $MODULE_SUCCESS
+}
+
+configure_tailscale_ssh_access() {
+    module_log "INFO" "Configuring Tailscale SSH access for web console"
+
+    # Get SSH configuration
+    local tailscale_ssh_user
+    tailscale_ssh_user=$(module_config_get "tailscale_ssh_user" "$(module_config_get "SERVERSH_USERNAME" "root")")
+
+    local tailscale_ssh_port
+    tailscale_ssh_port=$(module_config_get "tailscale_ssh_port" "22")
+
+    local enable_tailscale_ssh_expiry
+    enable_tailscale_ssh_expiry=$(module_config_get "enable_tailscale_ssh_expiry" "true")
+
+    local tailscale_ssh_expiry_time
+    tailscale_ssh_expiry_time=$(module_config_get "tailscale_ssh_expiry_time" "90d")
+
+    module_log "INFO" "Enabling Tailscale SSH access for user: $tailscale_ssh_user"
+
+    # Wait for Tailscale to be fully connected
+    local max_wait=60
+    local wait_count=0
+    while ! tailscale status >/dev/null 2>&1 && [[ $wait_count -lt $max_wait ]]; do
+        module_log "DEBUG" "Waiting for Tailscale to connect... ($wait_count/$max_wait)"
+        sleep 2
+        ((wait_count++))
+    done
+
+    if ! tailscale status >/dev/null 2>&1; then
+        module_log "WARN" "Tailscale is not connected, skipping SSH access configuration"
+        return $MODULE_SUCCESS
+    fi
+
+    # Enable Tailscale SSH
+    module_log "INFO" "Enabling Tailscale SSH daemon"
+    tailscale up --ssh
+
+    # Configure SSH access expiry if enabled
+    if [[ "$enable_tailscale_ssh_expiry" == "true" ]]; then
+        module_log "INFO" "Setting SSH key expiry to: $tailscale_ssh_expiry_time"
+        tailscale set --ssh-expire-after="$tailscale_ssh_expiry_time"
+    fi
+
+    # Check if SSH is running on the expected port
+    if ! netstat -tuln 2>/dev/null | grep -q ":$tailscale_ssh_port.*LISTEN" && ! ss -tuln 2>/dev/null | grep -q ":$tailscale_ssh_port.*LISTEN"; then
+        module_log "WARN" "SSH is not running on port $tailscale_ssh_port"
+        module_log "INFO" "Starting SSH service..."
+
+        # Try to start SSH service
+        if systemctl is-enabled --quiet sshd 2>/dev/null; then
+            systemctl start sshd
+        elif systemctl is-enabled --quiet ssh 2>/dev/null; then
+            systemctl start ssh
+        else
+            module_log "WARN" "Could not find SSH service to start"
+        fi
+    fi
+
+    # Display SSH access information
+    module_log "SUCCESS" "Tailscale SSH access configured!"
+    module_log "INFO" "You can now access this server via Tailscale:"
+    module_log "INFO" "  1. Go to: https://login.tailscale.com/admin/machines"
+    module_log "INFO " "  2. Find this machine: $(hostname) ($(tailscale ip -4 2>/dev/null))"
+    module_log "INFO " "  3. Click the 'SSH' button to connect via web console"
+    module_log "INFO " "  4. Or use: tailscale ssh $tailscale_ssh_user@$(hostname)"
+
+    # Show connection command
+    local tailscale_ip
+    tailscale_ip=$(tailscale ip -4 2>/dev/null | head -1)
+    if [[ -n "$tailscale_ip" ]]; then
+        module_log "INFO" "  SSH via Tailscale IP: tailscale ssh $tailscale_ssh_user@$tailscale_ip"
+    fi
+
+    # Configure additional SSH settings if needed
+    configure_ssh_for_tailscale "$tailscale_ssh_user"
+
+    return $MODULE_SUCCESS
+}
+
+configure_ssh_for_tailscale() {
+    local ssh_user="$1"
+
+    module_log "DEBUG" "Configuring SSH for optimal Tailscale integration"
+
+    # Ensure SSH directory exists for the user
+    local ssh_dir
+    if [[ "$ssh_user" == "root" ]]; then
+        ssh_dir="/root/.ssh"
+    else
+        ssh_dir="/home/$ssh_user/.ssh"
+    fi
+
+    mkdir -p "$ssh_dir" 2>/dev/null || true
+
+    # Set correct permissions
+    if [[ -d "$ssh_dir" ]]; then
+        chown "$ssh_user:$ssh_user" "$ssh_dir" 2>/dev/null || true
+        chmod 700 "$ssh_dir" 2>/dev/null || true
+    fi
+
+    # Add Tailscale network to SSH allow list if needed
+    local sshd_config="/etc/ssh/sshd_config"
+    if [[ -f "$sshd_config" ]]; then
+        # Check if we need to add Tailscale network to allow list
+        if ! grep -q "AllowUsers.*tailscale" "$sshd_config" 2>/dev/null; then
+            module_log "DEBUG" "SSH configuration is already set up for Tailscale"
+        fi
+    fi
+
+    # Restart SSH service to apply changes
+    if systemctl is-active --quiet sshd 2>/dev/null; then
+        systemctl reload sshd 2>/dev/null || true
+    elif systemctl is-active --quiet ssh 2>/dev/null; then
+        systemctl reload ssh 2>/dev/null || true
     fi
 
     return $MODULE_SUCCESS

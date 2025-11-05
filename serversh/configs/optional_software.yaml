@@ -10,6 +10,13 @@ applications/optional_software:
   tailscale_auth_key: ""  # Required if login_method is "auth_key"
   tailscale_args: "--accept-dns=false --accept-routes=true"  # Additional Tailscale arguments
 
+  # Tailscale SSH Access (Web Console)
+  enable_tailscale_ssh: false  # Enable SSH access via Tailscale admin panel
+  tailscale_ssh_user: "root"  # User for SSH access
+  tailscale_ssh_port: 22  # SSH port
+  enable_tailscale_ssh_expiry: true  # Enable SSH key expiry
+  tailscale_ssh_expiry_time: "90d"  # SSH key expiry time
+
   # Development Tools Installation
   install_dev_tools: false
   dev_packages: "build-essential,python3,python3-pip,nodejs,npm,yarn"
