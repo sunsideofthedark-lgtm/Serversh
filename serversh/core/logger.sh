@@ -14,6 +14,15 @@ source "${SERVERSH_LIB_DIR}/utils.sh" || exit $EXIT_MISSING_DEPS
 
 # Logging configuration
 declare -g LOG_LEVEL="${LOG_LEVEL:-$LOG_LEVEL_INFO}"
+# Convert string log level to numeric value for comparisons
+case "${LOG_LEVEL}" in
+    "DEBUG") LOG_LEVEL=$LOG_LEVEL_DEBUG ;;
+    "INFO")  LOG_LEVEL=$LOG_LEVEL_INFO ;;
+    "WARN")  LOG_LEVEL=$LOG_LEVEL_WARN ;;
+    "ERROR") LOG_LEVEL=$LOG_LEVEL_ERROR ;;
+    "FATAL") LOG_LEVEL=$LOG_LEVEL_FATAL ;;
+    *) LOG_LEVEL=$LOG_LEVEL_INFO ;;
+esac
 declare -g LOG_FILE="${LOG_FILE:-/var/log/serversh/serversh.log}"
 declare -g LOG_ENABLED=true
 declare -g LOG_COLORS=true

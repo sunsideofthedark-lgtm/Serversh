@@ -18,6 +18,9 @@ declare -g STATE_FILE="${SERVERSH_STATE_FILE}"
 declare -g STATE_DIR="${SERVERSH_STATE_DIR}"
 declare -g STATE_LOCK_FILE="${SERVERSH_STATE_DIR}/.state.lock"
 
+# State file permissions
+declare -g FILE_PERMISSION_STATE=644
+
 # State data structure
 declare -gA STATE_DATA
 declare -g STATE_LOADED=false
