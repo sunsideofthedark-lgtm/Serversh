@@ -614,9 +614,12 @@ main() {
     fi
 
     # Initialize ServerSH
+    log_info "About to initialize ServerSH..."
     initialize_serversh
+    log_info "ServerSH initialization completed"
 
     # Execute installation
+    log_info "About to execute installation..."
     execute_installation
 }
 
