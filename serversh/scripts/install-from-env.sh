@@ -36,26 +36,98 @@ log_error() {
 }
 
 # Hilfsfunktionen
-check_dependencies() {
-    log_info "Prüfe Abhängigkeiten..."
+detect_distribution() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        echo "$ID"
+    elif command -v lsb_release >/dev/null 2>&1; then
+        lsb_release -si | tr '[:upper:]' '[:lower:]'
+    else
+        echo "unknown"
+    fi
+}
 
-    local missing_deps=()
+install_dependencies() {
+    log_info "Prüfe System-Abhängigkeiten..."
 
+    local missing_optional=()
+
+    # Check for optional dependencies
     if ! command -v jq >/dev/null 2>&1; then
-        missing_deps+=("jq")
+        missing_optional+=("jq")
     fi
 
     if ! command -v yq >/dev/null 2>&1; then
-        missing_deps+=("yq")
+        missing_optional+=("yq")
     fi
 
-    if [[ ${#missing_deps[@]} -gt 0 ]]; then
-        log_error "Fehlende Abhängigkeiten: ${missing_deps[*]}"
-        log_info "Installieren Sie die fehlenden Pakete:"
-        log_info "Ubuntu/Debian: sudo apt-get install jq yq"
-        log_info "CentOS/RHEL: sudo yum install jq yq"
-        exit 1
+    if [[ ${#missing_optional[@]} -eq 0 ]]; then
+        log_success "Alle optionalen Abhängigkeiten sind installiert"
+        return 0
     fi
+
+    log_info "Optional dependencies missing: ${missing_optional[*]}"
+    log_info "These are optional - installation will continue without them"
+
+    # Try to install optional dependencies if possible
+    local distro
+    distro=$(detect_distribution)
+
+    case "$distro" in
+        ubuntu|debian)
+            if command -v apt-get >/dev/null 2>&1; then
+                log_info "Versuche optionale Abhängigkeiten zu installieren..."
+                apt-get update -qq
+
+                # Install jq (common in repos)
+                if [[ " ${missing_optional[*]} " =~ " jq " ]]; then
+                    if apt-get install -y jq >/dev/null 2>&1; then
+                        log_success "jq erfolgreich installiert"
+                    else
+                        log_warning "jq Installation fehlgeschlagen - wird übersprungen"
+                    fi
+                fi
+
+                # Install yq (download from GitHub)
+                if [[ " ${missing_optional[*]} " =~ " yq " ]]; then
+                    log_info "Installiere yq von GitHub..."
+                    if [[ "$(uname -m)" == "x86_64" ]]; then
+                        yq_arch="amd64"
+                    else
+                        yq_arch="arm64"
+                    fi
+                    if wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/v4.40.5/yq_linux_${yq_arch}"; then
+                        chmod +x /usr/local/bin/yq
+                        log_success "yq erfolgreich installiert"
+                    else
+                        log_warning "yq Installation fehlgeschlagen - wird übersprungen"
+                    fi
+                fi
+            fi
+            ;;
+        centos|rhel|fedora)
+            if command -v dnf &> /dev/null || command -v yum &> /dev/null; then
+                log_info "Versuche optionale Abhängigkeiten zu installieren..."
+                for dep in "${missing_optional[@]}"; do
+                    if command -v dnf &> /dev/null; then
+                        if dnf install -y "$dep" >/dev/null 2>&1; then
+                            log_success "$dep erfolgreich installiert"
+                        else
+                            log_warning "$dep Installation fehlgeschlagen - wird übersprungen"
+                        fi
+                    else
+                        if yum install -y "$dep" >/dev/null 2>&1; then
+                            log_success "$dep erfolgreich installiert"
+                        else
+                            log_warning "$dep Installation fehlgeschlagen - wird übersprungen"
+                        fi
+                    fi
+                done
+            fi
+            ;;
+    esac
+
+    log_success "System-Prüfung abgeschlossen"
 }
 
 load_env_file() {
@@ -482,7 +554,7 @@ main() {
     fi
 
     # Prüfe Abhängigkeiten
-    check_dependencies
+    install_dependencies
 
     # Lade Konfiguration
     load_env_file "${1:-.env}"

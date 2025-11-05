@@ -151,7 +151,7 @@ WEB UI:
     After installation, access: http://your-server-ip:8080
     Login with root credentials
 
-For detailed documentation, see README.md
+For help and examples, run: ./cli.sh help
 EOF
 }
 
