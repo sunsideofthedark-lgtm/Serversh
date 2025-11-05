@@ -16,7 +16,13 @@ readonly SERVERSH_BUILD_DATE="$(date +%Y-%m-%d)"
 readonly SERVERSH_COPYRIGHT="2024 ServerSH Project"
 
 # Paths
-readonly SERVERSH_ROOT="${SERVERSH_ROOT:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
+# SERVERSH_ROOT should already be set by the calling script
+# Only calculate it if not already set
+if [[ -z "${SERVERSH_ROOT:-}" ]]; then
+    readonly SERVERSH_ROOT="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
+else
+    readonly SERVERSH_ROOT="$SERVERSH_ROOT"
+fi
 readonly SERVERSH_LIB_DIR="${SERVERSH_ROOT}/core"
 readonly SERVERSH_MODULES_DIR="${SERVERSH_ROOT}/modules"
 readonly SERVERSH_CONFIG_DIR="${SERVERSH_ROOT}/config"

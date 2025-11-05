@@ -40,7 +40,14 @@ log_init() {
     local log_level="${2:-$LOG_LEVEL}"
 
     # Ensure log directory exists
-    ensure_dir "$(dirname "$log_file")" || return $EXIT_GENERAL_ERROR
+    local log_dir
+    log_dir="$(dirname "$log_file")"
+    if [[ ! -d "$log_dir" ]]; then
+        mkdir -p "$log_dir" || {
+            echo "ERROR: Cannot create log directory: $log_dir" >&2
+            return 1
+        }
+    fi
 
     # Set global variables
     LOG_FILE="$log_file"
