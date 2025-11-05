@@ -381,6 +381,12 @@ log_set_level() {
         "warn"|"WARN")   LOG_LEVEL=$LOG_LEVEL_WARN ;;
         "error"|"ERROR") LOG_LEVEL=$LOG_LEVEL_ERROR ;;
         "fatal"|"FATAL") LOG_LEVEL=$LOG_LEVEL_FATAL ;;
+        # Accept numeric log levels
+        "0") LOG_LEVEL=$LOG_LEVEL_DEBUG ;;
+        "1") LOG_LEVEL=$LOG_LEVEL_INFO ;;
+        "2") LOG_LEVEL=$LOG_LEVEL_WARN ;;
+        "3") LOG_LEVEL=$LOG_LEVEL_ERROR ;;
+        "4") LOG_LEVEL=$LOG_LEVEL_FATAL ;;
         *)
             log_error "Invalid log level: $level"
             return $EXIT_INVALID_ARGS
