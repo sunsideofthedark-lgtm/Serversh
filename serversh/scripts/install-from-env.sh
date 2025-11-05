@@ -437,7 +437,7 @@ EOF
     done
 
     # Führe Installation aus
-    local install_script="${PROJECT_DIR}/serversh/scripts/install.sh"
+    local install_script="${PROJECT_DIR}/scripts/install.sh"
 
     if [[ ! -f "$install_script" ]]; then
         log_error "Installationsskript nicht gefunden: $install_script"
