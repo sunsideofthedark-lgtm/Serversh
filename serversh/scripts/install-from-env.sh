@@ -444,6 +444,9 @@ EOF
         exit 1
     fi
 
+    # Ensure script has execute permissions
+    chmod +x "$install_script"
+
     log_info "Führe Installation mit folgenden Modulen aus: $modules"
 
     # Bereite Argumente vor
