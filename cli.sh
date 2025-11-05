@@ -412,6 +412,8 @@ install_server() {
     # Install ServerSH core
     local install_script="${PROJECT_DIR}/serversh/scripts/install-from-env.sh"
     if [[ -f "$install_script" ]]; then
+        log_info "Ensuring script permissions..."
+        chmod +x "$install_script"
         log_info "Executing ServerSH installation..."
         if "$install_script"; then
             log_success "ServerSH installation completed"
@@ -431,6 +433,7 @@ install_web() {
 
     local web_setup_script="${PROJECT_DIR}/serversh/scripts/web-setup.sh"
     if [[ -f "$web_setup_script" ]]; then
+        chmod +x "$web_setup_script"
         log_info "Executing Web UI installation..."
         if "$web_setup_script" install; then
             log_success "Web UI installation completed"
@@ -481,6 +484,7 @@ show_status() {
 
     # Check if ServerSH is installed
     if [[ -f "${PROJECT_DIR}/serversh/scripts/status.sh" ]]; then
+        chmod +x "${PROJECT_DIR}/serversh/scripts/status.sh"
         if "${PROJECT_DIR}/serversh/scripts/status.sh" 2>/dev/null; then
             log_success "ServerSH is properly installed"
         else
@@ -591,6 +595,7 @@ manage_module() {
 
     log_step "$action module: $module"
 
+    chmod +x "$module_file"
     if bash "$module_file" "$action"; then
         log_success "Module $action completed: $module"
     else
@@ -721,6 +726,7 @@ manage_backup() {
 
             local backup_script="${PROJECT_DIR}/serversh/scripts/backupctl.sh"
             if [[ -f "$backup_script" ]]; then
+                chmod +x "$backup_script"
                 if "$backup_script" "create" "$backup_type"; then
                     log_success "Backup created successfully"
                 else
@@ -737,6 +743,7 @@ manage_backup() {
 
             local backup_script="${PROJECT_DIR}/serversh/scripts/backupctl.sh"
             if [[ -f "$backup_script" ]]; then
+                chmod +x "$backup_script"
                 "$backup_script" "list"
             else
                 log_error "Backup script not found"
@@ -748,6 +755,7 @@ manage_backup() {
 
             local backup_script="${PROJECT_DIR}/serversh/scripts/backupctl.sh"
             if [[ -f "$backup_script" ]]; then
+                chmod +x "$backup_script"
                 if "$backup_script" "schedule"; then
                     log_success "Backup schedule configured"
                 else

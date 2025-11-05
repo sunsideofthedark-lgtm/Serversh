@@ -93,7 +93,7 @@ validate_config() {
         if [[ -z "${!var:-}" ]]; then
             errors+=("$var ist nicht gesetzt")
         fi
-    fi
+    done
 
     # Prüfe Port-Nummern
     local port_vars=(
