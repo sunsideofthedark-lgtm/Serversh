@@ -68,7 +68,7 @@ engine_register_module() {
     local module_name
     module_name=$(basename "$module_path" .sh)
 
-    log_debug "Registering module: $module_name (path: $module_path)"
+    log_info "Registering module: $module_name (path: $module_path)"
 
     # Validate module file
     if [ ! -f "$module_path" ]; then
@@ -77,10 +77,12 @@ engine_register_module() {
     fi
 
     # Source module file temporarily to validate
+    log_info "Sourcing module file: $module_name"
     if ! source "$module_path" 2>/dev/null; then
         log_error "Failed to source module: $module_name"
         return $EXIT_MODULE_ERROR
     fi
+    log_info "Successfully sourced module: $module_name"
 
     # Validate required functions exist
     local required_functions=(
@@ -138,11 +140,14 @@ engine_register_modules_from_dir() {
     local modules_registered=0
 
     # Find all .sh files in subdirectories
+    log_info "Searching for module files in: $modules_dir"
     while IFS= read -r -d '' module_file; do
         ((modules_found++))
+        log_info "Found module file: $(basename "$module_file")"
 
         if engine_register_module "$module_file"; then
             ((modules_registered++))
+            log_info "Successfully registered: $(basename "$module_file")"
         else
             log_warn "Failed to register module: $(basename "$module_file")"
         fi
