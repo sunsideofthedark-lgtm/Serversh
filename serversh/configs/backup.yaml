@@ -1,0 +1,135 @@
+# =============================================================================
+# ServerSH Backup & Recovery Configuration
+# =============================================================================
+
+# Backup Storage Configuration
+backup:
+  # Base directory for all backups
+  base_directory: "/backup"
+
+  # Backup retention period (days)
+  retention_days: 30
+
+  # Backup schedule (cron format)
+  # Examples:
+  #   "0 2 * * *"     - Daily at 2 AM
+  #   "0 2 * * 0"     - Weekly on Sunday at 2 AM
+  #   "0 2 1 * *"     - Monthly on 1st at 2 AM
+  schedule: "0 2 * * *"
+
+  # Enable automatic scheduling
+  enable_schedule: true
+
+  # Types of backups to create (comma-separated)
+  # Available: full, incremental, differential, snapshot
+  types: "full"
+
+  # Backup sources (comma-separated directories/files)
+  sources: "/etc,/home,/var/www,/opt,/var/lib,/usr/local"
+
+  # Compression method
+  # Available: gzip, bzip2, xz, lz4, none
+  compression: "gzip"
+
+  # Encryption settings
+  encryption: false
+  encryption_key: ""  # Set via environment variable for security
+
+  # Parallel backup jobs
+  parallel_jobs: 2
+
+  # Backup verification
+  verify: true
+
+  # Email notifications
+  email_reports: false
+  email_to: "admin@example.com"
+
+  # LVM Snapshot Support (requires LVM)
+  lvm_snapshot: false
+
+  # Remote Backup Configuration
+  remote:
+    enable: false
+    type: "rsync"  # rsync, s3, ftp, sftp
+    host: ""
+    user: ""
+    path: "/remote/backups"
+
+    # S3 specific settings
+    s3_bucket: ""
+    s3_region: ""
+    s3_access_key: ""
+    s3_secret_key: ""
+
+    # FTP/SFTP specific settings
+    password: ""
+    port: 21
+
+  # Exclude patterns (one per line)
+  exclude_patterns:
+    - "*.tmp"
+    - "*.log"
+    - "/var/cache"
+    - "/var/tmp"
+    - "/tmp"
+    - "/dev"
+    - "/proc"
+    - "/sys"
+    - "/run"
+    - "lost+found"
+
+  # Database Backup Settings
+  databases:
+    enable: false
+
+    # MySQL/MariaDB
+    mysql:
+      enable: false
+      user: "root"
+      password: ""
+      databases: "all"
+
+    # PostgreSQL
+    postgresql:
+      enable: false
+      user: "postgres"
+      password: ""
+      databases: "all"
+
+    # Redis
+    redis:
+      enable: false
+      config_path: "/etc/redis/redis.conf"
+
+# Disaster Recovery Configuration
+disaster_recovery:
+  # Create automatic disaster recovery packages
+  auto_create: false
+
+  # DR schedule (separate from regular backups)
+  schedule: "0 3 1 * *"  # Monthly on 1st at 3 AM
+
+  # DR retention period (longer than regular backups)
+  retention_days: 90
+
+# Monitoring and Alerting
+monitoring:
+  # Monitor backup success/failure
+  enable_monitoring: false
+
+  # Alert thresholds
+  alert_on_failure: true
+  alert_on_size_change: false
+  size_change_threshold: 50  # percentage
+
+# Performance Settings
+performance:
+  # Bandwidth limit for remote backups (KB/s)
+  bandwidth_limit: 0  # 0 = unlimited
+
+  # IO priority (nice level)
+  nice_level: 10
+
+  # Maximum backup size before splitting (GB)
+  max_backup_size: 10

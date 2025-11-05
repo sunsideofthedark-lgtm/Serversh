@@ -252,6 +252,65 @@ monitoring/prometheus:
 EOF
     fi
 
+    # Backup & Recovery Konfiguration
+    if [[ "${SERVERSH_BACKUP_ENABLE:-false}" == "true" ]]; then
+        cat > "$config_dir/backup.yaml" << EOF
+backup:
+  enable: ${SERVERSH_BACKUP_ENABLE:-true}
+  base_directory: "${SERVERSH_BACKUP_BASE_DIR:-/backup}"
+  retention_days: ${SERVERSH_BACKUP_RETENTION_DAYS:-30}
+  schedule: "${SERVERSH_BACKUP_SCHEDULE:-0 2 * * *}"
+  types: "${SERVERSH_BACKUP_TYPES:-full}"
+  sources: "${SERVERSH_BACKUP_SOURCES:-/etc,/home,/var/www,/opt}"
+  compression: "${SERVERSH_BACKUP_COMPRESSION:-gzip}"
+  encryption: ${SERVERSH_BACKUP_ENCRYPTION:-false}
+  parallel_jobs: ${SERVERSH_BACKUP_PARALLEL_JOBS:-2}
+  verify: ${SERVERSH_BACKUP_VERIFY:-true}
+  enable_schedule: ${SERVERSH_BACKUP_ENABLE_SCHEDULE:-false}
+  email_reports: ${SERVERSH_BACKUP_EMAIL_REPORTS:-false}
+  email_to: "${SERVERSH_BACKUP_EMAIL_TO:-admin@example.com}"
+
+  remote:
+    enable: ${SERVERSH_BACKUP_REMOTE_ENABLE:-false}
+    type: "${SERVERSH_BACKUP_REMOTE_TYPE:-rsync}"
+    host: "${SERVERSH_BACKUP_REMOTE_HOST:-}"
+    user: "${SERVERSH_BACKUP_REMOTE_USER:-}"
+    path: "${SERVERSH_BACKUP_REMOTE_PATH:-/remote/backups}"
+
+  databases:
+    enable: ${SERVERSH_BACKUP_DATABASES_ENABLE:-false}
+    mysql:
+      enable: ${SERVERSH_BACKUP_MYSQL_ENABLE:-false}
+      user: "${SERVERSH_BACKUP_MYSQL_USER:-root}"
+      password: "${SERVERSH_BACKUP_MYSQL_PASSWORD:-}"
+      databases: "${SERVERSH_BACKUP_MYSQL_DATABASES:-all}"
+    postgresql:
+      enable: ${SERVERSH_BACKUP_POSTGRESQL_ENABLE:-false}
+      user: "${SERVERSH_BACKUP_POSTGRESQL_USER:-postgres}"
+      password: "${SERVERSH_BACKUP_POSTGRESQL_PASSWORD:-}"
+      databases: "${SERVERSH_BACKUP_POSTGRESQL_DATABASES:-all}"
+    redis:
+      enable: ${SERVERSH_BACKUP_REDIS_ENABLE:-false}
+      config_path: "${SERVERSH_BACKUP_REDIS_CONFIG_PATH:-/etc/redis/redis.conf}"
+
+disaster_recovery:
+  auto_create: ${SERVERSH_DISASTER_RECOVERY_ENABLE:-false}
+  schedule: "${SERVERSH_DISASTER_RECOVERY_SCHEDULE:-0 3 1 * *}"
+  retention_days: ${SERVERSH_DISASTER_RECOVERY_RETENTION_DAYS:-90}
+
+monitoring:
+  enable_monitoring: ${SERVERSH_BACKUP_MONITORING_ENABLE:-false}
+  alert_on_failure: ${SERVERSH_BACKUP_ALERT_ON_FAILURE:-true}
+  alert_on_size_change: ${SERVERSH_BACKUP_ALERT_ON_SIZE_CHANGE:-false}
+  size_change_threshold: ${SERVERSH_BACKUP_SIZE_CHANGE_THRESHOLD:-50}
+
+performance:
+  bandwidth_limit: ${SERVERSH_BACKUP_BANDWIDTH_LIMIT:-0}
+  nice_level: ${SERVERSH_BACKUP_NICE_LEVEL:-10}
+  max_backup_size: ${SERVERSH_BACKUP_MAX_SIZE_GB:-10}
+EOF
+    fi
+
     # Optionale Software Konfiguration
     cat > "$config_dir/optional_software.yaml" << EOF
 applications/optional_software:
@@ -279,7 +338,7 @@ EOF
 run_installation() {
     log_info "Starte Installation..."
 
-    local modules="${SERVERSH_MODULE_ORDER:-system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus,applications/optional_software}"
+    local modules="${SERVERSH_MODULE_ORDER:-system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus,backup/backup_recovery,applications/optional_software}"
     local config_dir="${PROJECT_DIR}/configs/generated"
 
     # Erstelle temporäre Config-Datei für den Installer

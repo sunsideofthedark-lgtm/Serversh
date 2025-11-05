@@ -5,7 +5,12 @@
       "Bash(if not exist .claude mkdir .claude)",
       "Bash(if not exist .claudeagents mkdir .claudeagents)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(chmod:*)",
+      "Bash(./test_core.sh run:*)",
+      "Bash(./test_core_fixed.sh:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []
