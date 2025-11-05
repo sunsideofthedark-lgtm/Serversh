@@ -1,0 +1,30 @@
+# =============================================================================
+# ServerSH Prometheus Monitoring Configuration
+# =============================================================================
+
+# Prometheus Monitoring Configuration
+monitoring/prometheus:
+  # Prometheus version: "latest" or specific version like "2.45.0"
+  prometheus_version: "latest"
+
+  # Install Node Exporter for system metrics
+  install_node_exporter: true
+
+  # Node Exporter version: "latest" or specific version like "1.6.0"
+  node_exporter_version: "latest"
+
+  # Prometheus web interface port
+  prometheus_port: 9090
+
+  # Node Exporter metrics port
+  node_exporter_port: 9100
+
+  # Enable systemd services
+  enable_service: true
+
+  # Data retention period (format: number + unit: s, m, h, d)
+  # Examples: "15d" (15 days), "24h" (24 hours), "60m" (60 minutes)
+  config_retention: "15d"
+
+  # Storage path for Prometheus data
+  config_storage_path: "/var/lib/prometheus"

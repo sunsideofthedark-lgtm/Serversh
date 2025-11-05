@@ -203,6 +203,12 @@ is_valid_port() {
     [[ "$port" =~ $VALID_PORT_REGEX ]] && [ "$port" -ge 1024 ] && [ "$port" -le 65535 ]
 }
 
+# Validate any port number (including privileged ports)
+is_port_number() {
+    local port="$1"
+    [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge 1 ] && [ "$port" -le 65535 ]
+}
+
 # Validate IPv4 address
 is_valid_ipv4() {
     local ip="$1"
@@ -399,6 +405,72 @@ is_package_installed() {
             return 1
             ;;
     esac
+}
+
+# Check if package is available for installation
+package_available() {
+    local package="$1"
+
+    case "$(get_system_info os)" in
+        ubuntu|debian)
+            apt-cache show "$package" >/dev/null 2>&1
+            ;;
+        centos|rhel|fedora)
+            if command_exists dnf; then
+                dnf list available "$package" >/dev/null 2>&1
+            elif command_exists yum; then
+                yum list available "$package" >/dev/null 2>&1
+            fi
+            ;;
+        opensuse*)
+            zypper search "$package" | grep -q "^i |^s "
+            ;;
+        arch)
+            pacman -Ss "$package" >/dev/null 2>&1
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# =============================================================================
+# System Family Detection
+# =============================================================================
+
+# Check if system is Debian family
+is_debian_family() {
+    local os
+    os=$(get_system_info os)
+    [[ "$os" == "debian" || "$os" == "ubuntu" ]]
+}
+
+# Check if system is Red Hat family
+is_rhel_family() {
+    local os
+    os=$(get_system_info os)
+    [[ "$os" == "rhel" || "$os" == "centos" || "$os" == "rocky" || "$os" == "almalinux" ]]
+}
+
+# Check if system is Fedora family
+is_fedora_family() {
+    local os
+    os=$(get_system_info os)
+    [[ "$os" == "fedora" ]]
+}
+
+# Check if system is Arch Linux family
+is_arch_family() {
+    local os
+    os=$(get_system_info os)
+    [[ "$os" == "arch" || "$os" == "manjaro" ]]
+}
+
+# Check if system is SUSE family
+is_suse_family() {
+    local os
+    os=$(get_system_info os)
+    [[ "$os" == "opensuse" || "$os" == "sles" ]]
 }
 
 # =============================================================================

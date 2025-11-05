@@ -1,0 +1,36 @@
+# =============================================================================
+# ServerSH Firewall Configuration
+# =============================================================================
+
+# Firewall Configuration
+security/firewall:
+  # Firewall type: auto, ufw, firewalld
+  # auto = automatically detect and install the best available firewall
+  firewall_type: "auto"
+
+  # Enable firewall
+  enable_firewall: true
+
+  # Default policy for incoming traffic: deny, allow
+  # deny = block all incoming traffic except explicitly allowed
+  # allow = allow all incoming traffic except explicitly blocked
+  default_policy: "deny"
+
+  # Allow SSH access
+  allow_ssh: true
+
+  # SSH port (will be automatically detected if SSH module was configured)
+  ssh_port: 22
+
+  # Additional allowed ports (comma-separated, format: port/protocol)
+  # Examples:
+  #   - "80/tcp,443/tcp" for web servers
+  #   - "53/tcp,53/udp" for DNS servers
+  #   - "3306/tcp" for MySQL database
+  #   - "5432/tcp" for PostgreSQL database
+  #   - "6379/tcp" for Redis
+  #   - "9200/tcp,9300/tcp" for Elasticsearch
+  allowed_ports: "80/tcp,443/tcp"
+
+  # Enable firewall logging
+  log_rules: true
