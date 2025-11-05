@@ -13,18 +13,21 @@ source "${SERVERSH_LIB_DIR}/utils.sh" || exit $EXIT_MISSING_DEPS
 # =============================================================================
 
 # Logging configuration
-declare -g LOG_LEVEL="${LOG_LEVEL:-INFO}"
+declare -g LOG_LEVEL="${LOG_LEVEL:-$LOG_LEVEL_INFO}"
 declare -g LOG_FILE="${LOG_FILE:-/var/log/serversh/serversh.log}"
 declare -g LOG_ENABLED=true
 declare -g LOG_COLORS=true
 declare -g LOG_FORMAT="detailed"  # simple, detailed, json
 
-# File descriptors for different log levels
-declare -g LOG_FD_DEBUG=3
-declare -g LOG_FD_INFO=4
-declare -g LOG_FD_WARN=5
-declare -g LOG_FD_ERROR=6
-declare -g LOG_FD_FATAL=7
+# Initialize logging system
+init_logging() {
+    # Use stdout and stderr for logging instead of custom file descriptors
+    declare -g LOG_FD_DEBUG=1  # stdout
+    declare -g LOG_FD_INFO=1   # stdout
+    declare -g LOG_FD_WARN=2   # stderr
+    declare -g LOG_FD_ERROR=2  # stderr
+    declare -g LOG_FD_FATAL=2  # stderr
+}
 
 # Log rotation settings
 declare -g LOG_MAX_SIZE="${LOG_MAX_SIZE:-$MAX_LOG_FILE_SIZE}"
@@ -547,3 +550,6 @@ trap 'log_fatal "ServerSH interrupted by signal"' INT TERM
 # =============================================================================
 
 # Auto-initialization removed - let main script handle argument parsing
+
+# Initialize logging system when sourced
+init_logging
