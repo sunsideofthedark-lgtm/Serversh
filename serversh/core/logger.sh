@@ -13,8 +13,8 @@ source "${SERVERSH_LIB_DIR}/utils.sh" || exit $EXIT_MISSING_DEPS
 # =============================================================================
 
 # Logging configuration
-declare -g LOG_LEVEL="${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}"
-declare -g LOG_FILE="${SERVERSH_LOG_FILE}"
+declare -g LOG_LEVEL="${LOG_LEVEL:-INFO}"
+declare -g LOG_FILE="${LOG_FILE:-/var/log/serversh/serversh.log}"
 declare -g LOG_ENABLED=true
 declare -g LOG_COLORS=true
 declare -g LOG_FORMAT="detailed"  # simple, detailed, json
@@ -42,6 +42,16 @@ log_init() {
     # Ensure log directory exists
     local log_dir
     log_dir="$(dirname "$log_file")"
+
+    # Debug output
+    echo "DEBUG: log_file='$log_file'" >&2
+    echo "DEBUG: log_dir='$log_dir'" >&2
+
+    if [[ -z "$log_dir" ]]; then
+        echo "ERROR: Log directory is empty, using default" >&2
+        log_dir="/var/log/serversh"
+    fi
+
     if [[ ! -d "$log_dir" ]]; then
         mkdir -p "$log_dir" || {
             echo "ERROR: Cannot create log directory: $log_dir" >&2
