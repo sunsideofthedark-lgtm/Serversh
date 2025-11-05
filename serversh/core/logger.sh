@@ -62,6 +62,9 @@ log_init() {
         *) log_level="$log_level_param" ;;
     esac
 
+    # Update global LOG_LEVEL with numeric value
+    LOG_LEVEL="$log_level"
+
     # Ensure log directory exists
     local log_dir
     log_dir="$(dirname "$log_file")"
