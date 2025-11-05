@@ -565,14 +565,14 @@ engine_start() {
     engine_create_checkpoint "Engine start"
 
     # Validate configuration
-    log_debug "Validating configuration..."
+    log_info "Validating configuration..."
     if ! config_validate_values; then
         log_error "Configuration validation failed"
         state_set "status" "failed"
         ENGINE_RUNNING=false
         return $EXIT_CONFIG_ERROR
     fi
-    log_debug "Configuration validation passed"
+    log_info "Configuration validation passed"
 
     # Resolve dependencies
     if [ ${#module_list[@]} -gt 0 ]; then
@@ -589,24 +589,28 @@ engine_start() {
     fi
 
     # Resolve execution order
-    log_debug "Resolving dependencies for modules: ${module_list[*]}"
+    log_info "Resolving dependencies for modules: ${module_list[*]}"
     if ! engine_resolve_dependencies "${module_list[@]}"; then
         log_error "Dependency resolution failed"
         state_set "status" "failed"
         ENGINE_RUNNING=false
         return $EXIT_MODULE_ERROR
     fi
-    log_debug "Dependency resolution passed"
+    log_info "Dependency resolution passed"
 
     # Execute modules
     local execution_result=$EXIT_SUCCESS
+    log_info "Starting module execution (parallel: $PARALLEL_ENABLED)..."
     if [ "$PARALLEL_ENABLED" = true ]; then
+        log_info "Executing modules in parallel: ${MODULE_EXECUTION_ORDER[*]}"
         engine_execute_parallel "${MODULE_EXECUTION_ORDER[@]}"
         execution_result=$?
     else
+        log_info "Executing modules sequentially: ${MODULE_EXECUTION_ORDER[*]}"
         engine_execute_modules "${MODULE_EXECUTION_ORDER[@]}"
         execution_result=$?
     fi
+    log_info "Module execution completed with result: $execution_result"
 
     # Update final state
     if [ $execution_result -eq $EXIT_SUCCESS ]; then
