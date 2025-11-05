@@ -446,7 +446,8 @@ state_create_checkpoint() {
     echo "DEBUG: jq command found, proceeding" >&2
 
     local checkpoint_id
-    checkpoint_id="checkpoint_$(date +%Y%m%d_%H%M%S)_$(random_string 8)"
+    # Temporarily use static string to test if random_string is the issue
+    checkpoint_id="checkpoint_$(date +%Y%m%d_%H%M%S)_temp1234"
     echo "DEBUG: Generated checkpoint ID: $checkpoint_id" >&2
 
     log_info "Creating checkpoint: $checkpoint_id - $description"
