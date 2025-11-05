@@ -10,7 +10,10 @@
       "Bash(chmod:*)",
       "Bash(./test_core.sh run:*)",
       "Bash(./test_core_fixed.sh:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(./cli.sh:*)",
+      "Bash(./auto-cli.sh:*)",
+      "Bash(./webui.sh:*)"
     ],
     "deny": [],
     "ask": []
