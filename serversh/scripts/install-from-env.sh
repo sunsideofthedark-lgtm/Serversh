@@ -259,7 +259,9 @@ applications/optional_software:
   tailscale_login_method: "${SERVERSH_TAILSCALE_LOGIN_METHOD:-interactive}"
   tailscale_auth_key: "${SERVERSH_TAILSCALE_AUTH_KEY:-}"
   tailscale_args: "${SERVERSH_TAILSCALE_ARGS:-}"
-  enable_ssh_with_auth_key: ${SERVERSH_ENABLE_SSH_WITH_AUTH_KEY:-false}
+  tailscale_ssh: ${SERVERSH_TAILSCALE_SSH:-true}
+  tailscale_ssh_key: "${SERVERSH_TAILSCALE_SSH_KEY:-}"
+  tailscale_magicdns: ${SERVERSH_TAILSCALE_MAGICDNS:-true}
   install_dev_tools: ${SERVERSH_INSTALL_DEV_TOOLS:-false}
   dev_packages: "${SERVERSH_DEV_PACKAGES:-build-essential,python3,python3-pip,nodejs,npm}"
   install_utilities: ${SERVERSH_INSTALL_UTILITIES:-true}

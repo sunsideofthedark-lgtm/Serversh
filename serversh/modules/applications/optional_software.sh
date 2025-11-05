@@ -650,9 +650,13 @@ configure_tailscale() {
 
     module_log "INFO" "Configuring Tailscale with login method: $login_method"
 
-    # Get Tailscale SSH configuration
+    # Get Tailscale configuration from .env (not module config)
     local enable_tailscale_ssh
-    enable_tailscale_ssh=$(module_config_get "enable_tailscale_ssh" "false")
+    enable_tailscale_ssh=${SERVERSH_TAILSCALE_SSH:-false}
+
+    # Get Tailscale key from .env (fallback to auth_key)
+    local tailscale_ssh_key
+    tailscale_ssh_key=${SERVERSH_TAILSCALE_SSH_KEY:-$auth_key}
 
     # Wait for Tailscale daemon to be ready
     local max_wait=30
@@ -680,19 +684,31 @@ configure_tailscale() {
         ts_args="$ts_args $tailscale_args"
     fi
 
-    # Add auth key if provided
-    if [[ -n "$auth_key" && "$login_method" == "auth_key" ]]; then
-        ts_args="$ts_args --authkey=$auth_key"
+    # Determine which auth key to use (prioritize TAILSCALE_SSH_KEY)
+    local final_auth_key="$tailscale_ssh_key"
+    if [[ -z "$final_auth_key" ]]; then
+        final_auth_key="$auth_key"
     fi
 
-    # Check if SSH should be enabled with auth key
-    local enable_ssh_with_auth_key
-    enable_ssh_with_auth_key=$(module_config_get "enable_ssh_with_auth_key" "false")
+    # Add auth key if provided
+    if [[ -n "$final_auth_key" && "$login_method" == "auth_key" ]]; then
+        ts_args="$ts_args --authkey=$final_auth_key"
+        module_log "INFO" "Using Tailscale authentication key"
+    fi
 
-    # Add SSH flag if enabled with auth key method
-    if [[ "$enable_ssh_with_auth_key" == "true" && "$login_method" == "auth_key" ]]; then
+    # Add SSH flag if enabled
+    if [[ "$enable_tailscale_ssh" == "true" ]]; then
         ts_args="$ts_args --ssh"
-        module_log "INFO" "Enabling SSH access with Tailscale authentication key"
+        module_log "INFO" "SSH access enabled via --ssh flag"
+    fi
+
+    # Add MagicDNS flag if enabled
+    local enable_tailscale_magicdns
+    enable_tailscale_magicdns=${SERVERSH_TAILSCALE_MAGICDNS:-true}
+
+    if [[ "$enable_tailscale_magicdns" == "true" ]]; then
+        ts_args="$ts_args --magic-dns"
+        module_log "INFO" "MagicDNS enabled via --magic-dns flag"
     fi
 
     # Start Tailscale based on login method
@@ -711,8 +727,8 @@ configure_tailscale() {
             module_log "INFO" "Starting Tailscale (interactive login required)"
             module_log "INFO" "You will need to authenticate at: https://login.tailscale.com/start"
 
-            # Ask about SSH for interactive method
-            if [[ -t 0 ]]; then
+            # Check if SSH is disabled via config
+            if [[ "$enable_tailscale_ssh" != "true" ]] && [[ -t 0 ]]; then
                 echo -e "${YELLOW}Möchten Sie SSH-Zugriff direkt mit aktivieren?${NC}"
                 echo "Damit wird --ssh beim tailscale up mitgegeben."
                 echo ""
@@ -722,6 +738,8 @@ configure_tailscale() {
                     ts_args="$ts_args --ssh"
                     module_log "INFO" "SSH-Zugriff wird mit --ssh Flag aktiviert"
                 fi
+            elif [[ "$enable_tailscale_ssh" == "true" ]]; then
+                module_log "INFO" "SSH-Zugriff aktiviert (gemäß SERVERSH_TAILSCALE_SSH=true)"
             fi
 
             if ! eval "tailscale up $ts_args"; then

@@ -10,8 +10,12 @@ applications/optional_software:
   tailscale_auth_key: ""  # Required if login_method is "auth_key"
   tailscale_args: "--accept-dns=false --accept-routes=true"  # Additional Tailscale arguments
 
-  # Tailscale SSH Access (simple --ssh flag method)
-  enable_ssh_with_auth_key: false  # Enable SSH with --ssh flag when using auth key
+  # Tailscale SSH Access (direkte .env Konfiguration)
+  tailscale_ssh: true  # SSH Zugang aktivieren (--ssh flag)
+  tailscale_ssh_key: ""  # Tailscale Auth Key (priorität über tailscale_auth_key)
+
+  # Tailscale MagicDNS
+  tailscale_magicdns: true  # MagicDNS aktivieren (--magic-dns flag)
 
   # Development Tools Installation
   install_dev_tools: false
