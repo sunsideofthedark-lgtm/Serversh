@@ -1,0 +1,315 @@
+# =============================================================================
+# ServerSH Docker Compose Configuration
+# =============================================================================
+# Vollautomatische Server-Setup-Umgebung
+
+version: '3.8'
+
+services:
+  # ServerSH Setup Service
+  serversh-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.setup
+    container_name: serversh-setup
+    hostname: serversh-setup
+    privileged: true
+    stdin_open: true
+    tty: true
+    volumes:
+      # Mounte das gesamte Projekt
+      - .:/serversh:ro
+      # Persistente Konfigurationen
+      - ./configs:/serversh/configs
+      - ./state:/serversh/state
+      - ./logs:/serversh/logs
+      # System-Zugriff für Installation
+      - /:/host
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # System-Konfiguration
+      - SERVERSH_HOSTNAME=${SERVERSH_HOSTNAME:-myserver}
+      - SERVERSH_FQDN=${SERVERSH_FQDN:-myserver.example.com}
+      - SERVERSH_UPDATE_AUTO=${SERVERSH_UPDATE_AUTO:-true}
+      - SERVERSH_UPDATE_SECURITY_ONLY=${SERVERSH_UPDATE_SECURITY_ONLY:-false}
+
+      # Benutzer-Konfiguration
+      - SERVERSH_CREATE_USER=${SERVERSH_CREATE_USER:-true}
+      - SERVERSH_USERNAME=${SERVERSH_USERNAME:-admin}
+      - SERVERSH_USER_PASSWORD=${SERVERSH_USER_PASSWORD:-SecurePassword123!}
+      - SERVERSH_USER_SSH_KEY=${SERVERSH_USER_SSH_KEY:-true}
+      - SERVERSH_USER_SUDO=${SERVERSH_USER_SUDO:-true}
+      - SERVERSH_ADDITIONAL_SSH_KEYS=${SERVERSH_ADDITIONAL_SSH_KEYS:-}
+
+      # SSH-Konfiguration
+      - SERVERSH_SSH_ENABLE=${SERVERSH_SSH_ENABLE:-true}
+      - SERVERSH_SSH_INTERACTIVE_PORT=${SERVERSH_SSH_INTERACTIVE_PORT:-false}
+      - SERVERSH_SSH_PORT=${SERVERSH_SSH_PORT:-2222}
+      - SERVERSH_SSH_PERMIT_ROOT_LOGIN=${SERVERSH_SSH_PERMIT_ROOT_LOGIN:-no}
+      - SERVERSH_SSH_PASSWORD_AUTHENTICATION=${SERVERSH_SSH_PASSWORD_AUTHENTICATION:-no}
+
+      # Firewall-Konfiguration
+      - SERVERSH_FIREWALL_ENABLE=${SERVERSH_FIREWALL_ENABLE:-true}
+      - SERVERSH_FIREWALL_TYPE=${SERVERSH_FIREWALL_TYPE:-auto}
+      - SERVERSH_FIREWALL_DEFAULT_POLICY=${SERVERSH_FIREWALL_DEFAULT_POLICY:-deny}
+      - SERVERSH_FIREWALL_ALLOWED_PORTS=${SERVERSH_FIREWALL_ALLOWED_PORTS:-80/tcp,443/tcp}
+
+      # Docker-Konfiguration
+      - SERVERSH_DOCKER_ENABLE=${SERVERSH_DOCKER_ENABLE:-true}
+      - SERVERSH_DOCKER_VERSION=${SERVERSH_DOCKER_VERSION:-latest}
+      - SERVERSH_DOCKER_NETWORK_MTU=${SERVERSH_DOCKER_NETWORK_MTU:-1450}
+      - SERVERSH_DOCKER_NETWORK_IPV6=${SERVERSH_DOCKER_NETWORK_IPV6:-true}
+      - SERVERSH_DOCKER_NETWORK_NAME=${SERVERSH_DOCKER_NETWORK_NAME:-newt_talk}
+      - SERVERSH_DOCKER_IPV6_SUBNET=${SERVERSH_DOCKER_IPV6_SUBNET:-2001:db8:1::/64}
+      - SERVERSH_DOCKER_IP_POOL=${SERVERSH_DOCKER_IP_POOL:-172.25.0.0/16}
+      - SERVERSH_DOCKER_USER=${SERVERSH_DOCKER_USER:-admin}
+
+      # Prometheus-Konfiguration
+      - SERVERSH_PROMETHEUS_ENABLE=${SERVERSH_PROMETHEUS_ENABLE:-true}
+      - SERVERSH_PROMETHEUS_PORT=${SERVERSH_PROMETHEUS_PORT:-9090}
+      - SERVERSH_PROMETHEUS_RETENTION=${SERVERSH_PROMETHEUS_RETENTION:-15d}
+      - SERVERSH_NODE_EXPORTER_ENABLE=${SERVERSH_NODE_EXPORTER_ENABLE:-true}
+      - SERVERSH_NODE_EXPORTER_PORT=${SERVERSH_NODE_EXPORTER_PORT:-9100}
+
+      # Zusätzliche Pakete
+      - SERVERSH_ADDITIONAL_PACKAGES=${SERVERSH_ADDITIONAL_PACKAGES:-htop,vim,git,curl,wget}
+
+      # Installations-Optionen
+      - SERVERSH_LOG_LEVEL=${SERVERSH_LOG_LEVEL:-INFO}
+      - SERVERSH_DRY_RUN=${SERVERSH_DRY_RUN:-false}
+      - SERVERSH_DEBUG=${SERVERSH_DEBUG:-false}
+      - SERVERSH_AUTO_BACKUP=${SERVERSH_AUTO_BACKUP:-true}
+      - SERVERSH_ROLLBACK_ON_ERROR=${SERVERSH_ROLLBACK_ON_ERROR:-true}
+
+      # Modul-Reihenfolge
+      - SERVERSH_MODULE_ORDER=${SERVERSH_MODULE_ORDER:-system/update,system/hostname,security/users,security/ssh,security/firewall,container/docker,monitoring/prometheus}
+
+      # Netzwerk-Konfiguration
+      - SERVERSH_NETWORK_INTERFACE=${SERVERSH_NETWORK_INTERFACE:-eth0}
+
+      # Sicherheits-Konfiguration
+      - SERVERSH_INSTALL_FAIL2BAN=${SERVERSH_INSTALL_FAIL2BAN:-true}
+
+      # Backup-Konfiguration
+      - SERVERSH_BACKUP_ENABLE=${SERVERSH_BACKUP_ENABLE:-false}
+      - SERVERSH_BACKUP_PATH=${SERVERSH_BACKUP_PATH:-/backup}
+    networks:
+      - serversh-net
+    command: >
+      bash -c "
+        echo 'Starting ServerSH Setup...';
+        chroot /host /serversh/serversh/scripts/install-from-env.sh;
+        echo 'ServerSH Setup completed!';
+      "
+
+  # Prometheus Monitoring (nach der Installation)
+  prometheus:
+    image: prom/prometheus:${SERVERSH_PROMETHEUS_VERSION:-latest}
+    container_name: serversh-prometheus
+    hostname: prometheus
+    ports:
+      - "${SERVERSH_PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=${SERVERSH_PROMETHEUS_RETENTION:-15d}'
+      - '--web.enable-lifecycle'
+    networks:
+      - serversh-net
+    profiles:
+      - monitoring
+    depends_on:
+      - node-exporter
+
+  # Node Exporter
+  node-exporter:
+    image: prom/node-exporter:${SERVERSH_NODE_EXPORTER_VERSION:-latest}
+    container_name: serversh-node-exporter
+    hostname: node-exporter
+    ports:
+      - "${SERVERSH_NODE_EXPORTER_PORT:-9100}:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - serversh-net
+    profiles:
+      - monitoring
+
+  # Grafana für Visualisierung (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: serversh-grafana
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=${SERVERSH_USERNAME:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${SERVERSH_USER_PASSWORD:-SecurePassword123!}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - serversh-net
+    profiles:
+      - grafana
+    depends_on:
+      - prometheus
+
+  # Traefik Reverse Proxy (optional)
+  traefik:
+    image: traefik:v2.10
+    container_name: serversh-traefik
+    hostname: traefik
+    ports:
+      - "80:80"
+      - "443:443"
+      - "${SERVERSH_TRAEFIK_PORT:-8080}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configs/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./configs/traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik-logs:/var/log/traefik
+    networks:
+      - serversh-net
+    profiles:
+      - traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+  # Portainer Docker Management (optional)
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: serversh-portainer
+    hostname: portainer
+    ports:
+      - "${SERVERSH_PORTAINER_PORT:-9000}:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    command: -H unix:///var/run/docker.sock
+    networks:
+      - serversh-net
+    profiles:
+      - portainer
+
+  # Nginx Proxy Manager (optional)
+  npm:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: serversh-npm
+    hostname: npm
+    ports:
+      - '80:80'    # Public HTTP Port
+      - '443:443'  # Public HTTPS Port
+      - '81:81'    # Admin Web Port
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - serversh-net
+    profiles:
+      - nginx-proxy
+    environment:
+      - DISABLE_IPV6=true
+
+  # Redis Cache (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: serversh-redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - serversh-net
+    profiles:
+      - redis
+
+  # MariaDB Database (optional)
+  mariadb:
+    image: mariadb:10.11
+    container_name: serversh-mariadb
+    hostname: mariadb
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${SERVERSH_DB_ROOT_PASSWORD:-SecureRootPassword123!}
+      - MYSQL_DATABASE=${SERVERSH_DB_NAME:-serverapp}
+      - MYSQL_USER=${SERVERSH_DB_USER:-appuser}
+      - MYSQL_PASSWORD=${SERVERSH_DB_PASSWORD:-SecureAppPassword123!}
+    networks:
+      - serversh-net
+    profiles:
+      - database
+
+  # PostgreSQL Database (optional)
+  postgres:
+    image: postgres:15
+    container_name: serversh-postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${SERVERSH_DB_NAME:-serverapp}
+      - POSTGRES_USER=${SERVERSH_DB_USER:-appuser}
+      - POSTGRES_PASSWORD=${SERVERSH_DB_PASSWORD:-SecureAppPassword123!}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    networks:
+      - serversh-net
+    profiles:
+      - database
+
+networks:
+  serversh-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+          gateway: 172.25.0.1
+    driver_opts:
+      com.docker.network.bridge.mtu: ${SERVERSH_DOCKER_NETWORK_MTU:-1450}
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.driver.mtu: ${SERVERSH_DOCKER_NETWORK_MTU:-1450}
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  traefik-logs:
+    driver: local
+  portainer-data:
+    driver: local
+  npm-data:
+    driver: local
+  npm-letsencrypt:
+    driver: local
+  redis-data:
+    driver: local
+  mariadb-data:
+    driver: local
+  postgres-data:
+    driver: local
