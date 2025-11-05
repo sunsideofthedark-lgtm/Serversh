@@ -290,8 +290,14 @@ engine_execute_module() {
 
     # Source module file
     local module_path
-    module_path="${MODULE_METADATA[$module_name]#*path:}"
-    module_path="${module_path%%|*}"
+    if [[ -n "${MODULE_METADATA[$module_name]:-}" ]]; then
+        module_path="${MODULE_METADATA[$module_name]#*path:}"
+        module_path="${module_path%%|*}"
+    else
+        log_module_error "$module_name" "$EXIT_MODULE_ERROR" "Module metadata not found"
+        state_set_module_state "$module_name" "failed"
+        return $EXIT_MODULE_ERROR
+    fi
 
     if ! source "$module_path"; then
         log_module_error "$module_name" "$EXIT_MODULE_ERROR" "Failed to source module file"
@@ -573,7 +579,6 @@ engine_init() {
 
 # Start the engine with specified modules
 engine_start() {
-    echo "DEBUG: engine_start function called with args: $*" >&2
     local module_list=("$@")
 
     if [ "$ENGINE_INITIALIZED" != true ]; then
@@ -767,7 +772,8 @@ engine_stats() {
     echo "  Total Modules: ${#REGISTERED_MODULES[@]}"
     echo "  Execution Order: ${#MODULE_EXECUTION_ORDER[@]}"
 
-    if [ ${#MODULE_TIMERS[@]} -gt 0 ]; then
+    # Check if MODULE_TIMERS is initialized and has entries
+    if [[ -v MODULE_TIMERS && ${#MODULE_TIMERS[@]} -gt 0 ]]; then
         echo ""
         echo "Module Execution Times:"
         for module_name in "${!MODULE_TIMERS[@]}"; do
