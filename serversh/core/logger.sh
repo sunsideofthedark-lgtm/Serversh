@@ -40,7 +40,18 @@ declare -g LOG_MAX_FILES="${LOG_MAX_FILES:-5}"
 # Initialize logging system
 log_init() {
     local log_file="${1:-$LOG_FILE}"
-    local log_level="${2:-$LOG_LEVEL}"
+    local log_level_param="${2:-$LOG_LEVEL}"
+
+    # Convert string log level to numeric if needed
+    local log_level="$log_level_param"
+    case "$log_level_param" in
+        "DEBUG") log_level="$LOG_LEVEL_DEBUG" ;;
+        "INFO")  log_level="$LOG_LEVEL_INFO" ;;
+        "WARN")  log_level="$LOG_LEVEL_WARN" ;;
+        "ERROR") log_level="$LOG_LEVEL_ERROR" ;;
+        "FATAL") log_level="$LOG_LEVEL_FATAL" ;;
+        *) log_level="$log_level_param" ;;
+    esac
 
     # Ensure log directory exists
     local log_dir

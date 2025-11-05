@@ -258,10 +258,8 @@ validate_configuration() {
 initialize_serversh() {
     log_info "Initializing ServerSH"
 
-    # Set up environment variables
-    export SERVERSH_ROOT="$PROJECT_ROOT"
-    export SERVERSH_CONFIG_FILE="$CONFIG_FILE"
-    export SERVERSH_STATE_FILE="$STATE_FILE"
+    # SERVERSH_ROOT and other variables are already set as readonly in constants.sh
+    # No need to re-export them
     export LOG_LEVEL="$LOG_LEVEL"
 
     # Initialize core components
