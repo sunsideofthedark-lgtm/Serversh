@@ -259,6 +259,11 @@ applications/optional_software:
   tailscale_login_method: "${SERVERSH_TAILSCALE_LOGIN_METHOD:-interactive}"
   tailscale_auth_key: "${SERVERSH_TAILSCALE_AUTH_KEY:-}"
   tailscale_args: "${SERVERSH_TAILSCALE_ARGS:-}"
+  tailscale_ssh_user: "${SERVERSH_TAILSCALE_SSH_USER:-root}"
+  tailscale_ssh_port: ${SERVERSH_TAILSCALE_SSH_PORT:-22}
+  tailscale_ssh_key_path: "${SERVERSH_TAILSCALE_SSH_KEY_PATH:-/root/.ssh/tailscale}"
+  tailscale_ssh_timeout: ${SERVERSH_TAILSCALE_SSH_TIMEOUT:-300}
+  tailscale_ssh_interactive: ${SERVERSH_TAILSCALE_SSH_INTERACTIVE:-false}
   install_dev_tools: ${SERVERSH_INSTALL_DEV_TOOLS:-false}
   dev_packages: "${SERVERSH_DEV_PACKAGES:-build-essential,python3,python3-pip,nodejs,npm}"
   install_utilities: ${SERVERSH_INSTALL_UTILITIES:-true}

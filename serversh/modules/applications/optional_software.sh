@@ -10,6 +10,21 @@
 # Source module interface
 source "${SERVERSH_LIB_DIR}/module_interface.sh" || exit $EXIT_MISSING_DEPS
 
+# Color definitions for interactive prompts
+if [[ -t 1 ]]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m' # No Color
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    NC=''
+fi
+
 # =============================================================================
 # Required Functions
 # =============================================================================
@@ -103,8 +118,8 @@ module_validate_config() {
 
     # Validate Tailscale configuration
     if [[ "$install_tailscale" == "true" ]]; then
-        if [[ "$tailscale_login_method" != "interactive" && "$tailscale_login_method" != "auth_key" && "$tailscale_login_method" != "no_login" ]]; then
-            module_log "ERROR" "Invalid tailscale_login_method: $tailscale_login_method (must be interactive, auth_key, or no_login)"
+        if [[ "$tailscale_login_method" != "interactive" && "$tailscale_login_method" != "auth_key" && "$tailscale_login_method" != "no_login" && "$tailscale_login_method" != "ssh" ]]; then
+            module_log "ERROR" "Invalid tailscale_login_method: $tailscale_login_method (must be interactive, auth_key, ssh, or no_login)"
             return $MODULE_CONFIG_ERROR
         fi
 
@@ -682,6 +697,30 @@ configure_tailscale() {
                 module_log "WARN" "Tailscale started but may need manual authentication"
             fi
             ;;
+        "ssh")
+            module_log "INFO" "Configuring Tailscale for SSH-based authentication"
+            # Ask user if they want SSH authentication
+            if [[ -t 0 ]]; then  # Check if running in interactive terminal
+                echo -e "${YELLOW}Möchten Sie SSH-basierte Tailscale-Authentifizierung verwenden?${NC}"
+                echo "Dies erstellt SSH-Schlüssel und konfiguriert Tailscale für SSH-Zugriff."
+                echo ""
+                read -p "SSH-Authentifizierung verwenden? (j/N): " -n 1 -r
+                echo ""
+                if [[ $REPLY =~ ^[Jj]$ ]]; then
+                    module_log "INFO" "SSH-Authentifizierung gewählt"
+                    configure_tailscale_ssh "$ts_args"
+                else
+                    module_log "INFO" "SSH-Authentifizierung abgelehnt, nutze Standard-Methode"
+                    # Fallback to interactive method
+                    if ! eval "tailscale up $ts_args"; then
+                        module_log "WARN" "Tailscale started but may need manual authentication"
+                    fi
+                fi
+            else
+                module_log "INFO" "Non-interactive mode: configuring SSH-based authentication"
+                configure_tailscale_ssh "$ts_args"
+            fi
+            ;;
         "no_login")
             module_log "INFO" "Installing Tailscale without connecting (no-login mode)"
             # Don't start tailscale up, just install the package
@@ -707,6 +746,176 @@ configure_tailscale() {
         fi
     else
         module_log "WARN" "Tailscale status check failed - may need manual configuration"
+    fi
+
+    return $MODULE_SUCCESS
+}
+
+configure_tailscale_ssh() {
+    local ts_args="$1"
+
+    module_log "INFO" "Setting up Tailscale SSH authentication"
+
+    # Get SSH configuration values
+    local tailscale_ssh_user
+    tailscale_ssh_user=$(module_config_get "tailscale_ssh_user" "root")
+
+    local tailscale_ssh_port
+    tailscale_ssh_port=$(module_config_get "tailscale_ssh_port" "22")
+
+    local tailscale_ssh_key_path
+    tailscale_ssh_key_path=$(module_config_get "tailscale_ssh_key_path" "/root/.ssh/tailscale")
+
+    local tailscale_ssh_timeout
+    tailscale_ssh_timeout=$(module_config_get "tailscale_ssh_timeout" "300")
+
+    module_log "INFO" "SSH Configuration: User=$tailscale_ssh_user, Port=$tailscale_ssh_port"
+
+    # Check if SSH is running
+    if ! systemctl is-active --quiet sshd && ! systemctl is-active --quiet ssh; then
+        module_log "WARN" "SSH service is not running. Starting SSH service..."
+        systemctl start sshd 2>/dev/null || systemctl start ssh 2>/dev/null || {
+            module_log "ERROR" "Failed to start SSH service"
+            return $MODULE_ERROR
+        }
+    fi
+
+    # Enable SSH if not already enabled
+    if ! systemctl is-enabled --quiet sshd && ! systemctl is-enabled --quiet ssh; then
+        systemctl enable sshd 2>/dev/null || systemctl enable ssh 2>/dev/null || {
+            module_log "WARN" "Could not enable SSH service"
+        }
+    fi
+
+    # Generate SSH key pair for Tailscale if not exists
+    if [[ ! -f "$tailscale_ssh_key_path" ]]; then
+        module_log "INFO" "Generating SSH key pair for Tailscale authentication"
+        mkdir -p "$(dirname "$tailscale_ssh_key_path")"
+        ssh-keygen -t ed25519 -f "$tailscale_ssh_key_path" -N "" -C "tailscale-$(hostname)"
+        chmod 600 "$tailscale_ssh_key_path"
+        chmod 644 "${tailscale_ssh_key_path}.pub"
+    fi
+
+    # Display the public key for manual addition to Tailscale
+    local public_key
+    public_key=$(cat "${tailscale_ssh_key_path}.pub")
+
+    module_log "INFO" "SSH Public Key for Tailscale:"
+    module_log "INFO" "$public_key"
+    module_log "INFO" "Add this key to your Tailscale account at: https://login.tailscale.com/admin/machines"
+
+    # Create SSH configuration script for later use
+    local ssh_config_script="/tmp/tailscale_ssh_auth.sh"
+    cat > "$ssh_config_script" << EOF
+#!/bin/bash
+# Tailscale SSH Authentication Script
+# Generated by ServerSH on $(date)
+
+set -e
+
+SSH_USER="$tailscale_ssh_user"
+SSH_PORT="$tailscale_ssh_port"
+SSH_KEY="$tailscale_ssh_key_path"
+TIMEOUT="$tailscale_ssh_timeout"
+TS_ARGS="$ts_args"
+
+echo "Tailscale SSH Authentication Script"
+echo "==================================="
+echo "This script will help you authenticate Tailscale via SSH"
+echo ""
+
+# Function to check Tailscale status
+check_tailscale_status() {
+    if tailscale status >/dev/null 2>&1; then
+        echo "✅ Tailscale is connected"
+        tailscale ip -4 2>/dev/null && echo "Tailscale IP: \$(tailscale ip -4)"
+        return 0
+    else
+        echo "❌ Tailscale is not connected"
+        return 1
+    fi
+}
+
+# Try to start Tailscale if not running
+if ! systemctl is-active --quiet tailscaled; then
+    echo "Starting Tailscale daemon..."
+    systemctl start tailscaled
+    sleep 5
+fi
+
+# Show current status
+echo "Current Tailscale status:"
+tailscale status 2>/dev/null || echo "Tailscale not connected"
+
+echo ""
+echo "Available authentication methods:"
+echo "1. Use this script with SSH key authentication"
+echo "2. Manual authentication at: https://login.tailscale.com/start"
+echo "3. Use auth key if available"
+echo ""
+
+# Try SSH-based authentication
+echo "Attempting SSH-based Tailscale authentication..."
+
+# Add SSH key to authorized_keys for local access
+if [[ -f "\$SSH_KEY" && -d "/home/\$SSH_USER/.ssh" ]]; then
+    if ! grep -q "\$(cat \$SSH_KEY.pub)" "/home/\$SSH_USER/.ssh/authorized_keys" 2>/dev/null; then
+        echo "Adding SSH key to authorized_keys..."
+        mkdir -p "/home/\$SSH_USER/.ssh"
+        cat "\$SSH_KEY.pub" >> "/home/\$SSH_USER/.ssh/authorized_keys"
+        chown -R "\$SSH_USER:\$SSH_USER" "/home/\$SSH_USER/.ssh"
+        chmod 600 "/home/\$SSH_USER/.ssh/authorized_keys"
+    fi
+fi
+
+# Start Tailscale with SSH-specific arguments
+echo "Starting Tailscale..."
+if eval "tailscale up \$TS_ARGS"; then
+    echo "Tailscale started successfully!"
+    sleep 10
+
+    if check_tailscale_status; then
+        echo ""
+        echo "🎉 Tailscale SSH authentication successful!"
+        echo ""
+        echo "Next steps:"
+        echo "1. Check your Tailscale admin panel: https://login.tailscale.com/admin/machines"
+        echo "2. Verify the machine appears and is authorized"
+        echo "3. Test connectivity: tailscale ping <other-machine>"
+    else
+        echo ""
+        echo "⚠️  Tailscale started but may need manual authorization"
+        echo "Please visit: https://login.tailscale.com/start"
+        echo ""
+        echo "SSH Key for manual addition:"
+        echo "\$public_key"
+    fi
+else
+    echo "❌ Failed to start Tailscale"
+    echo "Please check logs: journalctl -u tailscaled -f"
+    exit 1
+fi
+
+echo ""
+echo "This script will remain available at: $ssh_config_script"
+echo "Run it anytime to retry Tailscale SSH authentication"
+EOF
+
+    chmod +x "$ssh_config_script"
+
+    module_log "INFO" "SSH authentication script created: $ssh_config_script"
+    module_log "INFO" "Run this script to complete Tailscale SSH authentication"
+
+    # Try to automatically run the script if we're in an interactive environment
+    if [[ -t 0 ]] && [[ "${INTERACTIVE_SSH:-false}" == "true" ]]; then
+        module_log "INFO" "Running SSH authentication script..."
+        if bash "$ssh_config_script"; then
+            module_log "SUCCESS" "Tailscale SSH authentication completed"
+        else
+            module_log "WARN" "SSH authentication script requires manual execution"
+        fi
+    else
+        module_log "INFO" "SSH authentication script created for manual execution"
     fi
 
     return $MODULE_SUCCESS
