@@ -4,6 +4,12 @@
 # ServerSH Constants
 # =============================================================================
 
+# Prevent re-sourcing this file
+if [[ -n "${SERVERSH_CONSTANTS_LOADED:-}" ]]; then
+    return 0
+fi
+readonly SERVERSH_CONSTANTS_LOADED=1
+
 # Version Information
 readonly SERVERSH_VERSION="1.0.0-alpha"
 readonly SERVERSH_BUILD_DATE="$(date +%Y-%m-%d)"
@@ -16,8 +22,8 @@ readonly SERVERSH_MODULES_DIR="${SERVERSH_ROOT}/modules"
 readonly SERVERSH_CONFIG_DIR="${SERVERSH_ROOT}/config"
 readonly SERVERSH_TEMPLATES_DIR="${SERVERSH_ROOT}/templates"
 readonly SERVERSH_STATE_DIR="${SERVERSH_STATE_DIR:-/var/lib/serversh}"
-readonly SERVERSH_LOG_DIR="${SERVERSH_LOG_DIR:-/var/log/serversh}"
-readonly SERVERSH_RUN_DIR="${SERVERSH_RUN_DIR:-/run/serversh}"
+readonly SERVERSH_LOG_DIR="/var/log/serversh"
+readonly SERVERSH_RUN_DIR="/run/serversh"
 
 # Files
 readonly SERVERSH_CONFIG_FILE="${SERVERSH_CONFIG_FILE:-${SERVERSH_CONFIG_DIR}/default.yaml}"
