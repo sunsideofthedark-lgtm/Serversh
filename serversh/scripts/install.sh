@@ -271,36 +271,44 @@ initialize_serversh() {
     export LOG_LEVEL="$LOG_LEVEL"
 
     # Initialize core components
+    log_info "Loading core components..."
     if ! source "${PROJECT_ROOT}/core/config.sh"; then
         log_error "Failed to load configuration manager"
         exit 1
     fi
+    log_info "Config manager loaded"
 
     if ! source "${PROJECT_ROOT}/core/state.sh"; then
         log_error "Failed to load state manager"
         exit 1
     fi
+    log_info "State manager loaded"
 
     if ! source "${PROJECT_ROOT}/core/engine.sh"; then
         log_error "Failed to load engine"
         exit 1
     fi
+    log_info "Engine loaded"
 
     # Initialize systems
+    log_info "Initializing systems..."
     if ! config_init "$CONFIG_FILE"; then
         log_error "Configuration initialization failed"
         exit 5
     fi
+    log_info "Config system initialized"
 
     if ! state_init "$STATE_FILE"; then
         log_error "State initialization failed"
         exit 7
     fi
+    log_info "State system initialized"
 
     if ! engine_init "$CONFIG_FILE" "$STATE_FILE"; then
         log_error "Engine initialization failed"
         exit 1
     fi
+    log_info "Engine initialized"
 
     # Configure logging
     log_set_level "$LOG_LEVEL"
