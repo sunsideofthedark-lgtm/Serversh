@@ -447,14 +447,19 @@ state_create_checkpoint() {
 
     local checkpoint_id
     checkpoint_id="checkpoint_$(date +%Y%m%d_%H%M%S)_$(random_string 8)"
+    echo "DEBUG: Generated checkpoint ID: $checkpoint_id" >&2
 
     log_info "Creating checkpoint: $checkpoint_id - $description"
 
+    echo "DEBUG: About to acquire state lock" >&2
     state_lock || return $EXIT_LOCK_ERROR
+    echo "DEBUG: State lock acquired" >&2
 
     # Read current state
+    echo "DEBUG: About to read state file: $STATE_FILE" >&2
     local current_state
     current_state=$(cat "$STATE_FILE")
+    echo "DEBUG: State file read successfully" >&2
 
     # Create checkpoint data
     local timestamp
