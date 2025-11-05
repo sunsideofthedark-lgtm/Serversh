@@ -43,15 +43,6 @@ log_init() {
     local log_dir
     log_dir="$(dirname "$log_file")"
 
-    # Debug output
-    echo "DEBUG: log_file='$log_file'" >&2
-    echo "DEBUG: log_dir='$log_dir'" >&2
-
-    if [[ -z "$log_dir" ]]; then
-        echo "ERROR: Log directory is empty, using default" >&2
-        log_dir="/var/log/serversh"
-    fi
-
     if [[ ! -d "$log_dir" ]]; then
         mkdir -p "$log_dir" || {
             echo "ERROR: Cannot create log directory: $log_dir" >&2
@@ -555,7 +546,4 @@ trap 'log_fatal "ServerSH interrupted by signal"' INT TERM
 # Initialization
 # =============================================================================
 
-# Auto-initialize if sourced with parameters
-if [ "${BASH_SOURCE[0]}" != "${0}" ] && [ $# -gt 0 ]; then
-    log_init "$@"
-fi
+# Auto-initialization removed - let main script handle argument parsing
