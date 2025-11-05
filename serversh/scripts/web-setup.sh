@@ -104,8 +104,9 @@ install_python_dependencies() {
             ;;
     esac
 
-    # Install Python packages
-    pip3 install flask flask-cors werkzeug --break-system-packages
+    # Install Python packages with system packages override
+    # Handle blinker conflict by using --ignore-installed
+    pip3 install --ignore-installed blinker flask flask-cors werkzeug --break-system-packages
 }
 
 # Create web UI user
