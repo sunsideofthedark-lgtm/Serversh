@@ -93,7 +93,7 @@ EOF
 # Default options
 CONFIG_FILE="$SERVERSH_CONFIG_FILE"
 STATE_FILE="$SERVERSH_STATE_FILE"
-LOG_LEVEL="info"
+LOG_LEVEL=$LOG_LEVEL_INFO
 PARALLEL_JOBS=1
 FORCE_INSTALL=false
 RESUME_INSTALL=false
@@ -132,7 +132,15 @@ parse_arguments() {
                 shift 2
                 ;;
             -l|--log-level)
-                LOG_LEVEL="$2"
+                # Convert string log level to numeric
+                case "$2" in
+                    "DEBUG"|"debug") LOG_LEVEL=$LOG_LEVEL_DEBUG ;;
+                    "INFO"|"info")   LOG_LEVEL=$LOG_LEVEL_INFO ;;
+                    "WARN"|"warn")   LOG_LEVEL=$LOG_LEVEL_WARN ;;
+                    "ERROR"|"error") LOG_LEVEL=$LOG_LEVEL_ERROR ;;
+                    "FATAL"|"fatal") LOG_LEVEL=$LOG_LEVEL_FATAL ;;
+                    *) LOG_LEVEL=$LOG_LEVEL_INFO ;;
+                esac
                 shift 2
                 ;;
             -p|--parallel)
