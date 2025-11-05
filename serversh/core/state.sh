@@ -436,11 +436,14 @@ state_list_modules() {
 state_create_checkpoint() {
     local description="$1"
     local checkpoint_type="${2:-manual}"
+    echo "DEBUG: state_create_checkpoint called with: $description, $checkpoint_type" >&2
 
     if ! command_exists jq; then
+        echo "DEBUG: jq command not found, returning error" >&2
         log_error "jq required for checkpoint management"
         return $EXIT_MISSING_DEPS
     fi
+    echo "DEBUG: jq command found, proceeding" >&2
 
     local checkpoint_id
     checkpoint_id="checkpoint_$(date +%Y%m%d_%H%M%S)_$(random_string 8)"
