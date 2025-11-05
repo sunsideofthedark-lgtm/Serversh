@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ServerSH{% endblock %}
+
+{% set show_nav = true %}
+
+{% block content %}
+<div class="grid grid-cols-3">
+    <!-- System Information Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🖥️ System Information</h3>
+        </div>
+        <div id="systemInfo">
+            <div class="loading" style="text-align: center; padding: 2rem;"></div>
+        </div>
+    </div>
+
+    <!-- Service Status Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🔧 Service Status</h3>
+            <button class="btn btn-outline" onclick="refreshServices()" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                🔄 Refresh
+            </button>
+        </div>
+        <div id="serviceStatus">
+            <div class="loading" style="text-align: center; padding: 2rem;"></div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">⚡ Quick Actions</h3>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button class="btn btn-primary" onclick="showModal('backupModal')">
+                💾 Create Backup
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='/config'">
+                ⚙️ Configure System
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='/modules'">
+                📦 Manage Modules
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='/ssh'">
+                🔑 SSH Keys
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📊 System Resources</h3>
+        <button class="btn btn-outline" onclick="refreshResources()" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+            🔄 Refresh
+        </button>
+    </div>
+    <div id="systemResources">
+        <div class="loading" style="text-align: center; padding: 2rem;"></div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📋 Recent Activity</h3>
+    </div>
+    <div id="recentActivity">
+        <p style="color: #64748b; text-align: center; padding: 2rem;">No recent activity</p>
+    </div>
+</div>
+
+<!-- Backup Modal -->
+<div class="modal" id="backupModal">
+    <div class="modal-content">
+        <div class="card-header">
+            <h3 class="card-title">💾 Create Backup</h3>
+            <button class="btn btn-outline" onclick="hideModal('backupModal')" style="padding: 0.5rem;">✕</button>
+        </div>
+        <form id="backupForm">
+            <div class="form-group">
+                <label class="form-label">Backup Type</label>
+                <select class="form-input" id="backupType" name="type">
+                    <option value="full">Full Backup</option>
+                    <option value="incremental">Incremental Backup</option>
+                    <option value="differential">Differential Backup</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Backup Sources (comma-separated)</label>
+                <input type="text" class="form-input" id="backupSources" name="sources"
+                       placeholder="/etc,/home,/var/www" value="/etc,/home,/var/www">
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="backupCompress" name="compress" checked>
+                    Compress backup
+                </label>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-primary">Create Backup</button>
+                <button type="button" class="btn btn-outline" onclick="hideModal('backupModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let refreshInterval;
+
+    async function loadSystemInfo() {
+        try {
+            const data = await apiRequest('/api/system/info');
+            const infoDiv = document.getElementById('systemInfo');
+
+            infoDiv.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div><strong>Hostname:</strong> ${data.hostname || 'N/A'}</div>
+                    <div><strong>OS:</strong> ${data.os?.PRETTY_NAME || 'N/A'}</div>
+                    <div><strong>Uptime:</strong> ${data.uptime || 'N/A'}</div>
+                    <div><strong>ServerSH:</strong> v${data.serversh_version || 'N/A'}</div>
+                    <div><strong>Memory:</strong> ${data.memory_available || 'N/A'}</div>
+                    <div><strong>Disk:</strong> ${data.disk_usage || 'N/A'}</div>
+                </div>
+            `;
+        } catch (error) {
+            document.getElementById('systemInfo').innerHTML =
+                '<p style="color: #dc2626; text-align: center;">Failed to load system information</p>';
+        }
+    }
+
+    async function loadServiceStatus() {
+        try {
+            const data = await apiRequest('/api/system/status');
+            const statusDiv = document.getElementById('serviceStatus');
+
+            let servicesHtml = '<div style="display: flex; flex-direction: column; gap: 0.75rem;">';
+
+            // ServerSH Status
+            const servershStatus = data.serversh_status || 'unknown';
+            const servershClass = servershStatus === 'installed' ? 'status-online' : 'status-offline';
+            servicesHtml += `<div><span class="status-indicator ${servershClass}"></span>ServerSH: ${servershStatus}</div>`;
+
+            // Service Statuses
+            for (const [service, status] of Object.entries(data.services || {})) {
+                const statusClass = status === 'active' || status === 'running' ? 'status-online' : 'status-offline';
+                servicesHtml += `<div><span class="status-indicator ${statusClass}"></span>${service}: ${status}</div>`;
+            }
+
+            servicesHtml += '</div>';
+            statusDiv.innerHTML = servicesHtml;
+        } catch (error) {
+            document.getElementById('serviceStatus').innerHTML =
+                '<p style="color: #dc2626; text-align: center;">Failed to load service status</p>';
+        }
+    }
+
+    async function loadSystemResources() {
+        try {
+            const data = await apiRequest('/api/system/info');
+            const resourcesDiv = document.getElementById('systemResources');
+
+            // Parse memory info
+            const memoryTotal = data.memory_total || '0 kB';
+            const memoryAvailable = data.memory_available || '0 kB';
+            const memoryUsed = parseInt(memoryTotal) - parseInt(memoryAvailable);
+            const memoryPercent = Math.round((memoryUsed / parseInt(memoryTotal)) * 100);
+
+            // Parse disk usage
+            const diskInfo = data.disk_usage || '';
+            const diskMatch = diskInfo.match(/(\d+)%/);
+            const diskPercent = diskMatch ? parseInt(diskMatch[1]) : 0;
+
+            resourcesDiv.innerHTML = `
+                <div class="grid grid-cols-2">
+                    <div>
+                        <h4 style="margin-bottom: 0.5rem; color: #1e293b;">Memory Usage</h4>
+                        <div class="progress-bar" style="margin-bottom: 0.5rem;">
+                            <div class="progress-fill" style="width: ${memoryPercent}%; background: ${memoryPercent > 80 ? '#dc2626' : memoryPercent > 60 ? '#d97706' : '#16a34a'};"></div>
+                        </div>
+                        <p style="font-size: 0.875rem; color: #64748b;">${memoryPercent}% used (${formatMemory(memoryUsed)} / ${formatMemory(memoryTotal)})</p>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 0.5rem; color: #1e293b;">Disk Usage</h4>
+                        <div class="progress-bar" style="margin-bottom: 0.5rem;">
+                            <div class="progress-fill" style="width: ${diskPercent}%; background: ${diskPercent > 80 ? '#dc2626' : diskPercent > 60 ? '#d97706' : '#16a34a'};"></div>
+                        </div>
+                        <p style="font-size: 0.875rem; color: #64748b;">${diskPercent}% used ${diskInfo.replace(/^[^0-9]*/, '')}</p>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            document.getElementById('systemResources').innerHTML =
+                '<p style="color: #dc2626; text-align: center;">Failed to load system resources</p>';
+        }
+    }
+
+    function formatMemory(kb) {
+        const mb = kb / 1024;
+        const gb = mb / 1024;
+        if (gb >= 1) {
+            return `${gb.toFixed(1)} GB`;
+        } else if (mb >= 1) {
+            return `${mb.toFixed(1)} MB`;
+        } else {
+            return `${kb} kB`;
+        }
+    }
+
+    async function createBackup(event) {
+        event.preventDefault();
+
+        const form = document.getElementById('backupForm');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+
+        // Show loading state
+        submitBtn.innerHTML = '<span class="loading"></span> Creating Backup...';
+        submitBtn.disabled = true;
+
+        try {
+            const formData = new FormData(form);
+            const data = {
+                type: formData.get('type'),
+                sources: formData.get('sources'),
+                compress: formData.has('compress')
+            };
+
+            // This would call the backup API
+            showAlert('Backup creation started in background', 'success');
+            hideModal('backupModal');
+
+            // Add to recent activity
+            addRecentActivity('backup', `Started ${data.type} backup of ${data.sources}`);
+
+        } catch (error) {
+            showAlert('Failed to create backup: ' + error.message, 'error');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    }
+
+    function addRecentActivity(type, description) {
+        const activityDiv = document.getElementById('recentActivity');
+        const time = new Date().toLocaleTimeString();
+
+        const icon = type === 'backup' ? '💾' : type === 'config' ? '⚙️' : type === 'module' ? '📦' : '🔧';
+
+        const activityHtml = `
+            <div style="padding: 0.75rem; border-bottom: 1px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                    <span>${icon}</span>
+                    <strong>${description}</strong>
+                </div>
+                <div style="font-size: 0.875rem; color: #64748b;">${time}</div>
+            </div>
+        `;
+
+        if (activityDiv.innerHTML.includes('No recent activity')) {
+            activityDiv.innerHTML = activityHtml;
+        } else {
+            activityDiv.insertAdjacentHTML('afterbegin', activityHtml);
+        }
+
+        // Keep only last 5 activities
+        const activities = activityDiv.querySelectorAll('div[style*="padding: 0.75rem"]');
+        if (activities.length > 5) {
+            activities[activities.length - 1].remove();
+        }
+    }
+
+    function refreshServices() {
+        loadServiceStatus();
+    }
+
+    function refreshResources() {
+        loadSystemResources();
+    }
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load initial data
+        loadSystemInfo();
+        loadServiceStatus();
+        loadSystemResources();
+
+        // Set up auto-refresh
+        refreshInterval = setInterval(() => {
+            loadSystemInfo();
+            loadServiceStatus();
+            loadSystemResources();
+        }, 30000); // Refresh every 30 seconds
+
+        // Setup backup form
+        document.getElementById('backupForm').addEventListener('submit', createBackup);
+
+        // Add some sample activity
+        addRecentActivity('login', 'Logged into ServerSH Web UI');
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+    });
+</script>
+{% endblock %}

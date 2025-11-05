@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block title %}Modules - ServerSH{% endblock %}
+
+{% set show_nav = true %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📦 Module Management</h3>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline" onclick="loadModules()" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                🔄 Refresh
+            </button>
+        </div>
+    </div>
+
+    <div id="modulesAlerts"></div>
+
+    <!-- Module Categories -->
+    <div class="tabs">
+        <div class="tab active" onclick="filterModules('all')">All Modules</div>
+        <div class="tab" onclick="filterModules('system')">System</div>
+        <div class="tab" onclick="filterModules('security')">Security</div>
+        <div class="tab" onclick="filterModules('container')">Container</div>
+        <div class="tab" onclick="filterModules('monitoring')">Monitoring</div>
+        <div class="tab" onclick="filterModules('management')">Management</div>
+        <div class="tab" onclick="filterModules('applications')">Applications</div>
+    </div>
+
+    <!-- Modules Grid -->
+    <div id="modulesGrid" class="grid grid-cols-3" style="margin-top: 1.5rem;">
+        <div class="loading" style="text-align: center; padding: 2rem; grid-column: 1 / -1;"></div>
+    </div>
+</div>
+
+<!-- Module Action Modal -->
+<div class="modal" id="moduleActionModal">
+    <div class="modal-content">
+        <div class="card-header">
+            <h3 class="card-title" id="modalTitle">Module Action</h3>
+            <button class="btn btn-outline" onclick="hideModal('moduleActionModal')" style="padding: 0.5rem;">✕</button>
+        </div>
+        <div id="modalContent">
+            <!-- Content will be dynamically inserted -->
+        </div>
+        <div style="margin-top: 1.5rem; text-align: right;">
+            <button class="btn btn-outline" onclick="hideModal('moduleActionModal')">Cancel</button>
+            <button class="btn btn-primary" id="modalActionBtn">Execute</button>
+        </div>
+    </div>
+</div>
+
+<!-- Module Details Modal -->
+<div class="modal" id="moduleDetailsModal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="card-header">
+            <h3 class="card-title" id="detailsTitle">Module Details</h3>
+            <button class="btn btn-outline" onclick="hideModal('moduleDetailsModal')" style="padding: 0.5rem;">✕</button>
+        </div>
+        <div id="detailsContent">
+            <!-- Content will be dynamically inserted -->
+        </div>
+        <div style="margin-top: 1.5rem; text-align: right;">
+            <button class="btn btn-primary" onclick="hideModal('moduleDetailsModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let modulesData = [];
+    let currentFilter = 'all';
+    let currentModule = null;
+
+    async function loadModules() {
+        try {
+            const response = await apiRequest('/api/modules');
+            modulesData = response.modules || [];
+            displayModules();
+        } catch (error) {
+            document.getElementById('modulesGrid').innerHTML =
+                '<p style="color: #dc2626; text-align: center; grid-column: 1 / -1;">Failed to load modules</p>';
+        }
+    }
+
+    function displayModules() {
+        const gridDiv = document.getElementById('modulesGrid');
+
+        let filteredModules = modulesData;
+        if (currentFilter !== 'all') {
+            filteredModules = modulesData.filter(module => module.category === currentFilter);
+        }
+
+        if (filteredModules.length === 0) {
+            gridDiv.innerHTML = `
+                <p style="color: #64748b; text-align: center; grid-column: 1 / -1; padding: 2rem;">
+                    No modules found for category: ${currentFilter}
+                </p>
+            `;
+            return;
+        }
+
+        let modulesHtml = '';
+        filteredModules.forEach(module => {
+            const status = getModuleStatus(module);
+            const statusBadge = getStatusBadge(status);
+
+            modulesHtml += `
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-header" style="padding-bottom: 0.5rem;">
+                        <h4 style="margin: 0; font-size: 1.1rem;">${module.name}</h4>
+                        ${statusBadge}
+                    </div>
+                    <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;">${module.description}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 0.75rem; color: #64748b;">
+                            v${module.version} • ${module.category}
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-outline" onclick="showModuleDetails('${module.name}')"
+                                    style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
+                                ℹ️ Info
+                            </button>
+                            <button class="btn btn-primary" onclick="showModuleAction('${module.name}', 'install')"
+                                    id="install-${module.name.replace(/[^a-zA-Z0-9]/g, '_')}"
+                                    style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
+                                📦 Install
+                            </button>
+                            <button class="btn btn-secondary" onclick="showModuleAction('${module.name}', 'uninstall')"
+                                    id="uninstall-${module.name.replace(/[^a-zA-Z0-9]/g, '_')}"
+                                    style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
+                                🗑️ Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        gridDiv.innerHTML = modulesHtml;
+        updateModuleButtons();
+    }
+
+    function getModuleStatus(module) {
+        // This would ideally check actual installation status
+        // For now, we'll simulate based on common modules
+        const commonInstalledModules = [
+            'system/update',
+            'system/hostname',
+            'security/users',
+            'security/ssh',
+            'container/docker',
+            'monitoring/prometheus'
+        ];
+
+        if (commonInstalledModules.includes(module.name)) {
+            return 'installed';
+        }
+        return 'not_installed';
+    }
+
+    function getStatusBadge(status) {
+        const badges = {
+            'installed': '<span class="badge badge-success">Installed</span>',
+            'not_installed': '<span class="badge badge-warning">Not Installed</span>',
+            'error': '<span class="badge badge-danger">Error</span>',
+            'pending': '<span class="badge badge-warning">Pending</span>'
+        };
+        return badges[status] || badges['not_installed'];
+    }
+
+    function updateModuleButtons() {
+        modulesData.forEach(module => {
+            const status = getModuleStatus(module);
+            const safeName = module.name.replace(/[^a-zA-Z0-9]/g, '_');
+
+            const installBtn = document.getElementById(`install-${safeName}`);
+            const uninstallBtn = document.getElementById(`uninstall-${safeName}`);
+
+            if (installBtn && uninstallBtn) {
+                if (status === 'installed') {
+                    installBtn.style.display = 'none';
+                    uninstallBtn.style.display = 'inline-flex';
+                } else {
+                    installBtn.style.display = 'inline-flex';
+                    uninstallBtn.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    function filterModules(category) {
+        currentFilter = category;
+
+        // Update tab active state
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        displayModules();
+    }
+
+    function showModuleDetails(moduleName) {
+        const module = modulesData.find(m => m.name === moduleName);
+        if (!module) return;
+
+        const detailsTitle = document.getElementById('detailsTitle');
+        const detailsContent = document.getElementById('detailsContent');
+
+        detailsTitle.textContent = `${module.name} Details`;
+
+        let content = `
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div>
+                    <h5 style="margin-bottom: 0.5rem;">📝 Description</h5>
+                    <p style="color: #64748b;">${module.description}</p>
+                </div>
+
+                <div class="grid grid-cols-2">
+                    <div>
+                        <h5 style="margin-bottom: 0.5rem;">🏷️ Information</h5>
+                        <ul style="color: #64748b; list-style: none; padding: 0;">
+                            <li><strong>Name:</strong> ${module.name}</li>
+                            <li><strong>Version:</strong> ${module.version}</li>
+                            <li><strong>Category:</strong> ${module.category}</li>
+                            <li><strong>Status:</strong> ${getStatusBadge(getModuleStatus(module)).replace('badge', '').replace(/<[^>]*>/g, '')}</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 style="margin-bottom: 0.5rem;">📁 File Location</h5>
+                        <p style="color: #64748b; font-family: monospace; font-size: 0.875rem; word-break: break-all;">
+                            ${module.file}
+                        </p>
+                    </div>
+                </div>
+        `;
+
+        if (module.dependencies && module.dependencies.length > 0) {
+            content += `
+                <div>
+                    <h5 style="margin-bottom: 0.5rem;">🔗 Dependencies</h5>
+                    <ul style="color: #64748b;">
+            `;
+            module.dependencies.forEach(dep => {
+                content += `<li>${dep}</li>`;
+            });
+            content += '</ul></div>';
+        }
+
+        content += `
+                <div>
+                    <h5 style="margin-bottom: 0.5rem;">⚡ Available Actions</h5>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-primary" onclick="showModuleAction('${module.name}', 'install')">
+                            📦 Install Module
+                        </button>
+                        <button class="btn btn-secondary" onclick="showModuleAction('${module.name}', 'validate')">
+                            ✅ Validate Configuration
+                        </button>
+                        <button class="btn btn-outline" onclick="showModuleAction('${module.name}', 'status')">
+                            📊 Check Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        detailsContent.innerHTML = content;
+        showModal('moduleDetailsModal');
+    }
+
+    function showModuleAction(moduleName, action) {
+        const module = modulesData.find(m => m.name === moduleName);
+        if (!module) return;
+
+        currentModule = module;
+
+        const modalTitle = document.getElementById('modalTitle');
+        const modalContent = document.getElementById('modalContent');
+        const modalActionBtn = document.getElementById('modalActionBtn');
+
+        // Hide details modal if open
+        hideModal('moduleDetailsModal');
+
+        // Configure modal based on action
+        switch (action) {
+            case 'install':
+                modalTitle.textContent = `📦 Install ${module.name}`;
+                modalContent.innerHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <p style="color: #64748b;">This will install the <strong>${module.name}</strong> module on your system.</p>
+                    </div>
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Warning:</strong> Module installation will modify your system configuration.
+                    </div>
+                    ${module.dependencies && module.dependencies.length > 0 ? `
+                        <div style="margin-bottom: 1rem;">
+                            <strong>Dependencies:</strong>
+                            <ul style="margin-top: 0.5rem; color: #64748b;">
+                                ${module.dependencies.map(dep => `<li>${dep}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+                modalActionBtn.textContent = 'Install Module';
+                modalActionBtn.className = 'btn btn-primary';
+                modalActionBtn.onclick = () => executeModuleAction('install');
+                break;
+
+            case 'uninstall':
+                modalTitle.textContent = `🗑️ Uninstall ${module.name}`;
+                modalContent.innerHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <p style="color: #64748b;">This will uninstall the <strong>${module.name}</strong> module from your system.</p>
+                    </div>
+                    <div class="alert alert-error">
+                        <strong>⚠️ Warning:</strong> Uninstallation may remove important services and configurations.
+                    </div>
+                `;
+                modalActionBtn.textContent = 'Uninstall Module';
+                modalActionBtn.className = 'btn btn-danger';
+                modalActionBtn.onclick = () => executeModuleAction('uninstall');
+                break;
+
+            case 'validate':
+                modalTitle.textContent = `✅ Validate ${module.name}`;
+                modalContent.innerHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <p style="color: #64748b;">This will validate the configuration for the <strong>${module.name}</strong> module.</p>
+                    </div>
+                `;
+                modalActionBtn.textContent = 'Validate Configuration';
+                modalActionBtn.className = 'btn btn-primary';
+                modalActionBtn.onclick = () => executeModuleAction('validate');
+                break;
+
+            case 'status':
+                modalTitle.textContent = `📊 ${module.name} Status`;
+                modalContent.innerHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <p style="color: #64748b;">This will check the current status of the <strong>${module.name}</strong> module.</p>
+                    </div>
+                `;
+                modalActionBtn.textContent = 'Check Status';
+                modalActionBtn.className = 'btn btn-secondary';
+                modalActionBtn.onclick = () => executeModuleAction('status');
+                break;
+        }
+
+        showModal('moduleActionModal');
+    }
+
+    async function executeModuleAction(action) {
+        if (!currentModule) return;
+
+        const modalActionBtn = document.getElementById('modalActionBtn');
+        const originalText = modalActionBtn.innerHTML;
+
+        // Show loading state
+        modalActionBtn.innerHTML = '<span class="loading"></span> Processing...';
+        modalActionBtn.disabled = true;
+
+        try {
+            const response = await apiRequest(`/api/modules/${currentModule.name}/execute`, {
+                method: 'POST',
+                body: JSON.stringify({ action })
+            });
+
+            if (response.success) {
+                showAlert(`Module ${action} completed successfully!`, 'success');
+                hideModal('moduleActionModal');
+
+                // Reload modules to update status
+                await loadModules();
+
+                // Add to recent activity if dashboard function exists
+                if (typeof addRecentActivity === 'function') {
+                    addRecentActivity('module', `${action.charAt(0).toUpperCase() + action.slice(1)} ${currentModule.name}`);
+                }
+
+                // Show output if available
+                if (response.stdout && response.stdout.trim()) {
+                    setTimeout(() => {
+                        showModal('moduleOutputModal');
+                        document.getElementById('moduleOutputContent').innerHTML = `
+                            <h5>Output:</h5>
+                            <div class="code-block">${response.stdout}</div>
+                            ${response.stderr && response.stderr.trim() ? `
+                                <h5 style="margin-top: 1rem;">Errors/Warnings:</h5>
+                                <div class="code-block" style="border-left-color: #d97706;">${response.stderr}</div>
+                            ` : ''}
+                        `;
+                    }, 500);
+                }
+            } else {
+                throw new Error(response.error || 'Module action failed');
+            }
+
+        } catch (error) {
+            showAlert(`Failed to ${action} module: ${error.message}`, 'error');
+        } finally {
+            modalActionBtn.innerHTML = originalText;
+            modalActionBtn.disabled = false;
+        }
+    }
+
+    // Initialize modules page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadModules();
+    });
+
+    // Add module output modal to body if it doesn't exist
+    if (!document.getElementById('moduleOutputModal')) {
+        const modalHtml = `
+            <div class="modal" id="moduleOutputModal">
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="card-header">
+                        <h3 class="card-title">Module Output</h3>
+                        <button class="btn btn-outline" onclick="hideModal('moduleOutputModal')" style="padding: 0.5rem;">✕</button>
+                    </div>
+                    <div id="moduleOutputContent">
+                        <!-- Content will be dynamically inserted -->
+                    </div>
+                    <div style="margin-top: 1.5rem; text-align: right;">
+                        <button class="btn btn-primary" onclick="hideModal('moduleOutputModal')">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+</script>
+{% endblock %}

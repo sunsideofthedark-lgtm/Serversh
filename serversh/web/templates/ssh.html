@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}SSH Keys - ServerSH{% endblock %}
+
+{% set show_nav = true %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">🔑 SSH Key Management</h3>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary" onclick="showModal('generateKeyModal')">
+                🔑 Generate New Keys
+            </button>
+        </div>
+    </div>
+
+    <div id="sshAlerts"></div>
+
+    <!-- Current SSH Keys -->
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+            <h4 class="card-title">Current SSH Keys</h4>
+            <button class="btn btn-outline" onclick="loadSSHKeys()" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                🔄 Refresh
+            </button>
+        </div>
+        <div id="sshKeysContent">
+            <div class="loading" style="text-align: center; padding: 2rem;"></div>
+        </div>
+    </div>
+
+    <!-- Download Options -->
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+            <h4 class="card-title">📥 Download SSH Keys</h4>
+        </div>
+        <div id="downloadOptions" style="display: none;">
+            <div class="grid grid-cols-2">
+                <button class="btn btn-secondary" onclick="downloadSSHKey('openssh')" id="downloadOpenSSH">
+                    🐧 Download OpenSSH Format (.pem)
+                </button>
+                <button class="btn btn-secondary" onclick="downloadSSHKey('putty')" id="downloadPuTTY" disabled>
+                    🪟 Download PuTTY Format (.ppk)
+                </button>
+                <button class="btn btn-secondary" onclick="downloadSSHKey('json')" id="downloadJSON">
+                    📄 Download JSON with Metadata
+                </button>
+                <button class="btn btn-secondary" onclick="showQRCode()" id="downloadQR">
+                    📱 Show QR Code
+                </button>
+            </div>
+        </div>
+        <div id="noKeysMessage" style="text-align: center; padding: 2rem; color: #64748b;">
+            <p>No SSH keys found. Generate new keys to get started.</p>
+        </div>
+    </div>
+
+    <!-- SSH Usage Instructions -->
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+            <h4 class="card-title">📖 SSH Usage Instructions</h4>
+        </div>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('linux-instructions')">Linux/macOS</div>
+            <div class="tab" onclick="switchTab('windows-instructions')">Windows</div>
+            <div class="tab" onclick="switchTab('mobile-instructions')">Mobile</div>
+        </div>
+
+        <div id="linux-instructions" class="tab-content active">
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">1. Download Private Key</h5>
+                <p style="color: #64748b;">Click "Download OpenSSH Format" to get your private key file.</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">2. Set Permissions</h5>
+                <div class="code-block">chmod 600 id_rsa_username.pem</div>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">3. Connect to Server</h5>
+                <div class="code-block">ssh -i id_rsa_username.pem username@your-server-ip -p 2222</div>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">4. Add to SSH Config (Optional)</h5>
+                <div class="code-block">cat >> ~/.ssh/config << EOF
+Host myserver
+    HostName your-server-ip
+    Port 2222
+    User username
+    IdentityFile ~/.ssh/id_rsa_username.pem
+EOF</div>
+            </div>
+        </div>
+
+        <div id="windows-instructions" class="tab-content">
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">1. Using PuTTY</h5>
+                <ol style="color: #64748b; margin-left: 1.5rem;">
+                    <li>Download and install PuTTY from <a href="https://www.putty.org/" target="_blank">putty.org</a></li>
+                    <li>Download the PuTTY format key (not yet implemented)</li>
+                    <li>Open PuTTY and enter your server IP and port (2222)</li>
+                    <li>Go to Connection > SSH > Auth and load your private key</li>
+                    <li>Click "Open" to connect</li>
+                </ol>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">2. Using Windows PowerShell/OpenSSH</h5>
+                <ol style="color: #64748b; margin-left: 1.5rem;">
+                    <li>Download the OpenSSH format key</li>
+                    <li>Open PowerShell as Administrator</li>
+                    <li>Run: Set-ExecutionPolicy RemoteSigned</li>
+                    <li>Connect using: ssh -i id_rsa_username.pem username@your-server-ip -p 2222</li>
+                </ol>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">3. Using Windows Terminal</h5>
+                <p style="color: #64748b;">Same as PowerShell method. Windows Terminal includes OpenSSH support.</p>
+            </div>
+        </div>
+
+        <div id="mobile-instructions" class="tab-content">
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">1. Using QR Code</h5>
+                <p style="color: #64748b;">Click "Show QR Code" and scan with your mobile SSH client.</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">2. Recommended Mobile Apps</h5>
+                <ul style="color: #64748b; margin-left: 1.5rem;">
+                    <li><strong>Android:</strong> Termius, JuiceSSH, ConnectBot</li>
+                    <li><strong>iOS:</strong> Termius, Prompt, Blink Shell</li>
+                </ul>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <h5 style="margin-bottom: 0.5rem;">3. Manual Setup</h5>
+                <ol style="color: #64748b; margin-left: 1.5rem;">
+                    <li>Download JSON format key</li>
+                    <li>Copy the private key to your mobile app</li>
+                    <li>Configure connection: Server IP, Port 2222, Username</li>
+                    <li>Test connection</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generate Key Modal -->
+<div class="modal" id="generateKeyModal">
+    <div class="modal-content">
+        <div class="card-header">
+            <h3 class="card-title">🔑 Generate New SSH Keys</h3>
+            <button class="btn btn-outline" onclick="hideModal('generateKeyModal')" style="padding: 0.5rem;">✕</button>
+        </div>
+        <form id="generateKeyForm">
+            <div class="form-group">
+                <label class="form-label">Key Type</label>
+                <select class="form-input" id="keyType" name="type">
+                    <option value="ed25519">ED25519 (Recommended)</option>
+                    <option value="rsa">RSA (4096 bit)</option>
+                    <option value="ecdsa">ECDSA</option>
+                </select>
+                <small style="color: #64748b; font-size: 0.875rem;">ED25519 provides the best security and performance</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Key Comment</label>
+                <input type="text" class="form-input" id="keyComment" name="comment"
+                       placeholder="serversh-key-20240101" value="">
+                <small style="color: #64748b; font-size: 0.875rem;">Optional comment to identify the key</small>
+            </div>
+            <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                <strong>⚠️ Warning:</strong> This will replace any existing SSH keys for the user. Make sure to backup current keys if needed.
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-primary" id="generateBtn">Generate Keys</button>
+                <button type="button" class="btn btn-outline" onclick="hideModal('generateKeyModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal" id="qrCodeModal">
+    <div class="modal-content">
+        <div class="card-header">
+            <h3 class="card-title">📱 SSH Key QR Code</h3>
+            <button class="btn btn-outline" onclick="hideModal('qrCodeModal')" style="padding: 0.5rem;">✕</button>
+        </div>
+        <div id="qrCodeContent" style="text-align: center;">
+            <p>Generating QR code...</p>
+        </div>
+        <div style="margin-top: 1rem; text-align: center;">
+            <p style="color: #64748b; font-size: 0.875rem;">Scan this QR code with your mobile SSH client</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let sshKeysData = null;
+
+    async function loadSSHKeys() {
+        try {
+            const response = await apiRequest('/api/ssh/keys');
+            sshKeysData = response.keys;
+            displaySSHKeys();
+        } catch (error) {
+            document.getElementById('sshKeysContent').innerHTML =
+                '<p style="color: #dc2626; text-align: center;">Failed to load SSH keys</p>';
+        }
+    }
+
+    function displaySSHKeys() {
+        const contentDiv = document.getElementById('sshKeysContent');
+        const downloadOptions = document.getElementById('downloadOptions');
+        const noKeysMessage = document.getElementById('noKeysMessage');
+
+        if (!sshKeysData || (!sshKeysData.private_exists && !sshKeysData.public)) {
+            contentDiv.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #64748b;">
+                    <p>No SSH keys found for the user.</p>
+                    <p>Generate new keys to get started with secure SSH access.</p>
+                </div>
+            `;
+            downloadOptions.style.display = 'none';
+            noKeysMessage.style.display = 'block';
+            return;
+        }
+
+        let keysHtml = '<div style="display: flex; flex-direction: column; gap: 1rem;">';
+
+        // Public Key
+        if (sshKeysData.public) {
+            keysHtml += `
+                <div>
+                    <h5 style="margin-bottom: 0.5rem;">🔓 Public Key</h5>
+                    <div class="code-block" style="word-break: break-all;">${sshKeysData.public}</div>
+                    <button class="btn btn-outline" onclick="copyToClipboard('${sshKeysData.public.replace(/'/g, "\\'")}')" style="margin-top: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                        📋 Copy Public Key
+                    </button>
+                </div>
+            `;
+        }
+
+        // Private Key Status
+        if (sshKeysData.private_exists) {
+            keysHtml += `
+                <div>
+                    <h5 style="margin-bottom: 0.5rem;">🔒 Private Key</h5>
+                    <p style="color: #16a34a;">✅ Private key exists (${sshKeysData.private_type || 'RSA'})</p>
+                    <p style="color: #64748b; font-size: 0.875rem;">Use the download options below to get your private key.</p>
+                </div>
+            `;
+        }
+
+        // Authorized Keys
+        if (sshKeysData.authorized_keys && sshKeysData.authorized_keys.length > 0) {
+            keysHtml += `
+                <div>
+                    <h5 style="margin-bottom: 0.5rem;">🔑 Authorized Keys (${sshKeysData.authorized_keys.length})</h5>
+                    <div style="max-height: 200px; overflow-y: auto;">
+            `;
+            sshKeysData.authorized_keys.forEach((key, index) => {
+                if (key.trim()) {
+                    keysHtml += `
+                        <div class="code-block" style="margin-bottom: 0.5rem; font-size: 0.75rem; word-break: break-all;">
+                            ${key}
+                        </div>
+                    `;
+                }
+            });
+            keysHtml += '</div></div>';
+        }
+
+        keysHtml += '</div>';
+        contentDiv.innerHTML = keysHtml;
+
+        if (sshKeysData.private_exists) {
+            downloadOptions.style.display = 'block';
+            noKeysMessage.style.display = 'none';
+        }
+    }
+
+    async function generateSSHKeys(event) {
+        event.preventDefault();
+
+        const form = document.getElementById('generateKeyForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const originalText = generateBtn.innerHTML;
+
+        // Show loading state
+        generateBtn.innerHTML = '<span class="loading"></span> Generating Keys...';
+        generateBtn.disabled = true;
+
+        try {
+            const formData = new FormData(form);
+            const data = {
+                type: formData.get('type'),
+                comment: formData.get('comment') || `serversh-${new Date().toISOString().split('T')[0]}`
+            };
+
+            const response = await apiRequest('/api/ssh/keys/generate', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            if (response.success) {
+                showAlert('SSH keys generated successfully!', 'success');
+                hideModal('generateKeyModal');
+
+                // Reload SSH keys to show new keys
+                await loadSSHKeys();
+
+                // Add to recent activity if dashboard function exists
+                if (typeof addRecentActivity === 'function') {
+                    addRecentActivity('ssh', `Generated new ${data.type} SSH keys`);
+                }
+            } else {
+                throw new Error(response.error || 'Failed to generate SSH keys');
+            }
+
+        } catch (error) {
+            showAlert('Failed to generate SSH keys: ' + error.message, 'error');
+        } finally {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+    }
+
+    async function downloadSSHKey(format) {
+        try {
+            const response = await fetch(`/api/ssh/keys/download/${format}`, {
+                headers: {
+                    'Authorization': `Bearer ${document.cookie.match(/session=([^;]+)/)?.[1] || ''}`
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Download failed');
+            }
+
+            if (format === 'json') {
+                const data = await response.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ssh_keys_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                // For other formats, the response should be a file download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `id_rsa_${format}_${new Date().toISOString().split('T')[0]}.${format === 'openssh' ? 'pem' : format}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+
+            showAlert(`SSH key downloaded in ${format} format`, 'success');
+
+        } catch (error) {
+            showAlert('Failed to download SSH key: ' + error.message, 'error');
+        }
+    }
+
+    function showQRCode() {
+        if (!sshKeysData || !sshKeysData.public) {
+            showAlert('No SSH key available for QR code generation', 'error');
+            return;
+        }
+
+        showModal('qrCodeModal');
+
+        // Generate QR code (simplified - in production, use a proper QR code library)
+        const qrContent = document.getElementById('qrCodeContent');
+        qrContent.innerHTML = `
+            <div style="padding: 2rem; background: white; border: 2px solid #e2e8f0; border-radius: 0.5rem; display: inline-block;">
+                <div style="width: 256px; height: 256px; background: repeating-linear-gradient(
+                    45deg,
+                    #000,
+                    #000 10px,
+                    #fff 10px,
+                    #fff 20px
+                ); position: relative;">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; font-size: 0.75rem; font-weight: bold;">
+                        SSH KEY<br>QR CODE<br>(Placeholder)
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="copyToClipboard('${sshKeysData.public.replace(/'/g, "\\'")}')">
+                    📋 Copy Public Key Instead
+                </button>
+            </div>
+        `;
+
+        showAlert('QR code generation would require additional libraries. For now, you can copy the public key.', 'warning');
+    }
+
+    function copyToClipboard(text) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('Copied to clipboard!', 'success');
+            }).catch(err => {
+                fallbackCopyTextToClipboard(text);
+            });
+        } else {
+            fallbackCopyTextToClipboard(text);
+        }
+    }
+
+    function fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            document.execCommand('copy');
+            showAlert('Copied to clipboard!', 'success');
+        } catch (err) {
+            showAlert('Failed to copy to clipboard', 'error');
+        }
+
+        document.body.removeChild(textArea);
+    }
+
+    // Initialize SSH page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSSHKeys();
+
+        // Setup generate key form
+        document.getElementById('generateKeyForm').addEventListener('submit', generateSSHKeys);
+
+        // Set default comment
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('keyComment').value = `serversh-${today}`;
+    });
+</script>
+{% endblock %}

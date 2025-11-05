@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - ServerSH{% endblock %}
+
+{% set show_nav = true %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">⚙️ ServerSH Configuration</h3>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline" onclick="validateConfig()" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                ✅ Validate
+            </button>
+            <button class="btn btn-primary" onclick="saveConfig()" id="saveBtn">
+                💾 Save Configuration
+            </button>
+        </div>
+    </div>
+
+    <div id="configAlerts"></div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('system-config')">System</div>
+        <div class="tab" onclick="switchTab('user-config')">Users</div>
+        <div class="tab" onclick="switchTab('ssh-config')">SSH</div>
+        <div class="tab" onclick="switchTab('docker-config')">Docker</div>
+        <div class="tab" onclick="switchTab('monitoring-config')">Monitoring</div>
+        <div class="tab" onclick="switchTab('backup-config')">Backup</div>
+        <div class="tab" onclick="switchTab('advanced-config')">Advanced</div>
+    </div>
+
+    <!-- System Configuration Tab -->
+    <div id="system-config" class="tab-content active">
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">Server Hostname</label>
+                <input type="text" class="form-input" id="SERVERSH_HOSTNAME" name="SERVERSH_HOSTNAME"
+                       placeholder="myserver" required>
+                <small style="color: #64748b; font-size: 0.875rem;">System hostname (max 63 characters)</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Fully Qualified Domain Name</label>
+                <input type="text" class="form-input" id="SERVERSH_FQDN" name="SERVERSH_FQDN"
+                       placeholder="myserver.example.com">
+                <small style="color: #64748b; font-size: 0.875rem;">Optional FQDN for the server</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_UPDATE_AUTO" name="SERVERSH_UPDATE_AUTO" checked>
+                    Enable Automatic Updates
+                </label>
+                <small style="color: #64748b; font-size: 0.875rem;">Automatically update system packages</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_UPDATE_SECURITY_ONLY" name="SERVERSH_UPDATE_SECURITY_ONLY">
+                    Security Updates Only
+                </label>
+                <small style="color: #64748b; font-size: 0.875rem;">Only install security updates</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Configuration Tab -->
+    <div id="user-config" class="tab-content">
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_CREATE_USER" name="SERVERSH_CREATE_USER" checked>
+                    Create Admin User
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Admin Username</label>
+                <input type="text" class="form-input" id="SERVERSH_USERNAME" name="SERVERSH_USERNAME"
+                       placeholder="admin" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Admin Password</label>
+                <input type="password" class="form-input" id="SERVERSH_USER_PASSWORD" name="SERVERSH_USER_PASSWORD"
+                       placeholder="SecurePassword123!" required>
+                <small style="color: #64748b; font-size: 0.875rem;">Minimum 8 characters</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_USER_SUDO" name="SERVERSH_USER_SUDO" checked>
+                    Grant Sudo Access
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Additional SSH Public Keys</label>
+            <textarea class="form-input form-textarea" id="SERVERSH_ADDITIONAL_SSH_KEYS" name="SERVERSH_ADDITIONAL_SSH_KEYS"
+                      placeholder="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC... user@example.com"></textarea>
+            <small style="color: #64748b; font-size: 0.875rem;">One key per line, comma-separated in .env format</small>
+        </div>
+    </div>
+
+    <!-- SSH Configuration Tab -->
+    <div id="ssh-config" class="tab-content">
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_SSH_ENABLE" name="SERVERSH_SSH_ENABLE" checked>
+                    Enable SSH Server
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_SSH_INTERACTIVE_PORT" name="SERVERSH_SSH_INTERACTIVE_PORT" checked>
+                    Interactive Port Selection
+                </label>
+                <small style="color: #64748b; font-size: 0.875rem;">Scan for available SSH ports</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Preferred SSH Port</label>
+                <input type="number" class="form-input" id="SERVERSH_SSH_PREFERRED_PORT" name="SERVERSH_SSH_PREFERRED_PORT"
+                       placeholder="2222" min="1" max="65535">
+            </div>
+            <div class="form-group">
+                <label class="form-label">SSH Port Ranges</label>
+                <input type="text" class="form-input" id="SERVERSH_SSH_SCAN_RANGES" name="SERVERSH_SSH_SCAN_RANGES"
+                       placeholder="2000-2999,4000-4999,5000-5999">
+            </div>
+        </div>
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_SSH_PASSWORD_AUTHENTICATION" name="SERVERSH_SSH_PASSWORD_AUTHENTICATION">
+                    Allow Password Authentication
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_SSH_PERMIT_ROOT_LOGIN" name="SERVERSH_SSH_PERMIT_ROOT_LOGIN">
+                    Permit Root Login
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Docker Configuration Tab -->
+    <div id="docker-config" class="tab-content">
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_DOCKER_ENABLE" name="SERVERSH_DOCKER_ENABLE" checked>
+                    Enable Docker
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_DOCKER_INSTALL_COMPOSE" name="SERVERSH_DOCKER_INSTALL_COMPOSE" checked>
+                    Install Docker Compose
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Docker Network MTU</label>
+                <input type="number" class="form-input" id="SERVERSH_DOCKER_NETWORK_MTU" name="SERVERSH_DOCKER_NETWORK_MTU"
+                       placeholder="1450" value="1450">
+                <small style="color: #64748b; font-size: 0.875rem;">MTU 1450 for Tailscale compatibility</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Docker Network Name</label>
+                <input type="text" class="form-input" id="SERVERSH_DOCKER_NETWORK_NAME" name="SERVERSH_DOCKER_NETWORK_NAME"
+                       placeholder="newt_talk" value="newt_talk">
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_DOCKER_IPV6" name="SERVERSH_DOCKER_IPV6" checked>
+                    Enable IPv6 Support
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">IPv6 Subnet</label>
+                <input type="text" class="form-input" id="SERVERSH_DOCKER_IPV6_SUBNET" name="SERVERSH_DOCKER_IPV6_SUBNET"
+                       placeholder="2001:db8:1::/64" value="2001:db8:1::/64">
+            </div>
+        </div>
+    </div>
+
+    <!-- Monitoring Configuration Tab -->
+    <div id="monitoring-config" class="tab-content">
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_PROMETHEUS_ENABLE" name="SERVERSH_PROMETHEUS_ENABLE" checked>
+                    Enable Prometheus
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Prometheus Port</label>
+                <input type="number" class="form-input" id="SERVERSH_PROMETHEUS_PORT" name="SERVERSH_PROMETHEUS_PORT"
+                       placeholder="9090" value="9090" min="1" max="65535">
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_NODE_EXPORTER_ENABLE" name="SERVERSH_NODE_EXPORTER_ENABLE" checked>
+                    Enable Node Exporter
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Node Exporter Port</label>
+                <input type="number" class="form-input" id="SERVERSH_NODE_EXPORTER_PORT" name="SERVERSH_NODE_EXPORTER_PORT"
+                       placeholder="9100" value="9100" min="1" max="65535">
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Configuration Tab -->
+    <div id="backup-config" class="tab-content">
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_BACKUP_ENABLE" name="SERVERSH_BACKUP_ENABLE">
+                    Enable Backups
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Backup Directory</label>
+                <input type="text" class="form-input" id="SERVERSH_BACKUP_BASE_DIR" name="SERVERSH_BACKUP_BASE_DIR"
+                       placeholder="/backup" value="/backup">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Backup Schedule (Cron)</label>
+                <input type="text" class="form-input" id="SERVERSH_BACKUP_SCHEDULE" name="SERVERSH_BACKUP_SCHEDULE"
+                       placeholder="0 2 * * *" value="0 2 * * *">
+                <small style="color: #64748b; font-size: 0.875rem;">Format: minute hour day month weekday</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Retention Days</label>
+                <input type="number" class="form-input" id="SERVERSH_BACKUP_RETENTION_DAYS" name="SERVERSH_BACKUP_RETENTION_DAYS"
+                       placeholder="30" value="30" min="1">
+            </div>
+        </div>
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_BACKUP_ENCRYPTION" name="SERVERSH_BACKUP_ENCRYPTION">
+                    Enable Encryption
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_BACKUP_VERIFY" name="SERVERSH_BACKUP_VERIFY" checked>
+                    Verify Backups
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Configuration Tab -->
+    <div id="advanced-config" class="tab-content">
+        <div class="grid grid-cols-2">
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_INSTALL_TAILSCALE" name="SERVERSH_INSTALL_TAILSCALE">
+                    Install Tailscale VPN
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_TAILSCALE_SSH" name="SERVERSH_TAILSCALE_SSH">
+                    Enable Tailscale SSH
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="SERVERSH_FIREWALL_ENABLE" name="SERVERSH_FIREWALL_ENABLE" checked>
+                    Enable Firewall
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Allowed Ports</label>
+                <input type="text" class="form-input" id="SERVERSH_FIREWALL_ALLOWED_PORTS" name="SERVERSH_FIREWALL_ALLOWED_PORTS"
+                       placeholder="80/tcp,443/tcp" value="80/tcp,443/tcp">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Additional Packages</label>
+            <input type="text" class="form-input" id="SERVERSH_ADDITIONAL_PACKAGES" name="SERVERSH_ADDITIONAL_PACKAGES"
+                   placeholder="htop,vim,git,curl,wget,unzip,tree">
+            <small style="color: #64748b; font-size: 0.875rem;">Comma-separated package names</small>
+        </div>
+    </div>
+</div>
+
+<!-- Validation Results Modal -->
+<div class="modal" id="validationModal">
+    <div class="modal-content">
+        <div class="card-header">
+            <h3 class="card-title">✅ Configuration Validation</h3>
+            <button class="btn btn-outline" onclick="hideModal('validationModal')" style="padding: 0.5rem;">✕</button>
+        </div>
+        <div id="validationResults"></div>
+        <div style="margin-top: 1.5rem; text-align: right;">
+            <button class="btn btn-primary" onclick="hideModal('validationModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let configData = {};
+    let originalConfigData = {};
+
+    async function loadConfig() {
+        try {
+            const response = await apiRequest('/api/config');
+            configData = response.config || {};
+            originalConfigData = { ...configData };
+
+            // Populate form fields
+            Object.keys(configData).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = configData[key] === 'true' || configData[key] === true;
+                    } else {
+                        element.value = configData[key] || '';
+                    }
+                }
+            });
+
+        } catch (error) {
+            showAlert('Failed to load configuration: ' + error.message, 'error');
+        }
+    }
+
+    function collectFormData() {
+        const formData = {};
+        const inputs = document.querySelectorAll('input[id^="SERVERSH_"]');
+
+        inputs.forEach(input => {
+            if (input.type === 'checkbox') {
+                formData[input.id] = input.checked;
+            } else if (input.type === 'number') {
+                formData[input.id] = input.value;
+            } else {
+                formData[input.id] = input.value;
+            }
+        });
+
+        return formData;
+    }
+
+    async function validateConfig() {
+        try {
+            const formData = collectFormData();
+            const response = await apiRequest('/api/config/validate', {
+                method: 'POST',
+                body: JSON.stringify({ config: formData })
+            });
+
+            const resultsDiv = document.getElementById('validationResults');
+
+            if (response.valid) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>✅ Configuration is valid!</strong><br>
+                        All settings are properly configured and ready to save.
+                    </div>
+                `;
+            } else {
+                let errorsHtml = '<div class="alert alert-error"><strong>❌ Configuration errors found:</strong><ul>';
+                response.errors.forEach(error => {
+                    errorsHtml += `<li>${error}</li>`;
+                });
+                errorsHtml += '</ul></div>';
+                resultsDiv.innerHTML = errorsHtml;
+            }
+
+            showModal('validationModal');
+
+        } catch (error) {
+            showAlert('Validation failed: ' + error.message, 'error');
+        }
+    }
+
+    async function saveConfig() {
+        try {
+            const saveBtn = document.getElementById('saveBtn');
+            const originalText = saveBtn.innerHTML;
+
+            // Show loading state
+            saveBtn.innerHTML = '<span class="loading"></span> Saving...';
+            saveBtn.disabled = true;
+
+            const formData = collectFormData();
+
+            // First validate
+            const validationResponse = await apiRequest('/api/config/validate', {
+                method: 'POST',
+                body: JSON.stringify({ config: formData })
+            });
+
+            if (!validationResponse.valid) {
+                throw new Error('Configuration has validation errors. Please fix them before saving.');
+            }
+
+            // Save configuration
+            const saveResponse = await apiRequest('/api/config', {
+                method: 'POST',
+                body: JSON.stringify({ config: formData })
+            });
+
+            if (saveResponse.success) {
+                showAlert('Configuration saved successfully!', 'success');
+                originalConfigData = { ...formData };
+
+                // Add to recent activity if dashboard function exists
+                if (typeof addRecentActivity === 'function') {
+                    addRecentActivity('config', 'Updated ServerSH configuration');
+                }
+            } else {
+                throw new Error('Failed to save configuration');
+            }
+
+        } catch (error) {
+            showAlert('Failed to save configuration: ' + error.message, 'error');
+        } finally {
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.innerHTML = '💾 Save Configuration';
+            saveBtn.disabled = false;
+        }
+    }
+
+    function checkUnsavedChanges() {
+        const currentData = collectFormData();
+        const hasChanges = JSON.stringify(currentData) !== JSON.stringify(originalConfigData);
+
+        if (hasChanges) {
+            return 'You have unsaved changes. Are you sure you want to leave?';
+        }
+    }
+
+    // Initialize configuration page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadConfig();
+
+        // Setup form change detection
+        const inputs = document.querySelectorAll('input[id^="SERVERSH_"]');
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const saveBtn = document.getElementById('saveBtn');
+                if (saveBtn.innerHTML !== '💾 Save Configuration *') {
+                    saveBtn.innerHTML = '💾 Save Configuration *';
+                }
+            });
+        });
+
+        // Warn before leaving with unsaved changes
+        window.addEventListener('beforeunload', checkUnsavedChanges);
+
+        // Handle tab switching with unsaved changes warning
+        const originalSwitchTab = window.switchTab;
+        window.switchTab = function(tabId) {
+            if (checkUnsavedChanges()) {
+                if (confirm(checkUnsavedChanges())) {
+                    originalSwitchTab(tabId);
+                }
+            } else {
+                originalSwitchTab(tabId);
+            }
+        };
+    });
+</script>
+{% endblock %}
